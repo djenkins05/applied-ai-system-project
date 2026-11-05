@@ -13,3 +13,11 @@ venv/
 
 # Pytest cache
 .pytest_cache/
+
+# Local secrets (keep .env.example committable)
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets.*

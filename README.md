@@ -92,6 +92,7 @@ score = 1.0 * genre_match + 1.0 * mood_match
    python -m venv .venv
    source .venv/bin/activate      # Mac or Linux
    .venv\Scripts\activate         # Windows
+   ```
 
 2. Install dependencies
 
