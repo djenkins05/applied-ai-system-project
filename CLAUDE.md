@@ -27,7 +27,7 @@ into an interactive AI music assistant using **Python, Streamlit, and the Gemini
 | `tests/test_recommender.py` | 35 original pytest tests: 32 pass, 3 are `xfail(strict=True)` (imports `from src.recommender import ...`). **Protected.** |
 | `README.md` | MoodMix AI overview, quick start, architecture, examples, testing and evaluation summary, then the preserved Module 3 documentation. |
 | `model_card.md` | Model card: Module 3 sections 1–9, then the MoodMix AI extension (sections 10–16). |
-| `ai_interactions.md` | AI-assisted development log (decisions, accepted and rejected suggestions). Stretch sections are intentionally not claimed. |
+| `ai_interactions.md` | AI-assisted development log (timeline, accepted and rejected suggestions, reflection). Stretch sections were removed because they are not claimed. |
 | `requirements.txt` | `pandas`, `pytest`, `streamlit`, `google-genai`, `python-dotenv`. |
 
 Implemented MoodMix AI files (all new; the protected files above are unchanged):
@@ -152,8 +152,8 @@ Phases 1–6 below use the numbering of the development commits (see `ai_interac
    scripted or canned) plus saved reports; one expectation (H1 top 3) is kept as a documented finding.
 7. **Other stretch (optional)** — not demonstrated and not claimed: specialized prompting, bounded agentic workflow,
    multi-source retrieval.
-8. **Final polish** — in progress: fresh-clone verification, reflection review (drafts are marked DRAFT until I approve
-   them), four real-Gemini Streamlit screenshots are saved; remaining screenshots (ranking modes, manual mode, guardrails,
+8. **Final polish** — in progress: fresh-clone verification, reflection reviewed and approved by me (no DRAFT labels remain),
+   four real-Gemini Streamlit screenshots are saved; remaining screenshots (ranking modes, manual mode, guardrails,
    failure fallback, limits) are pending my own captures; the rendered diagram is saved, then an approved merge and push.
 
 ## 9. Documentation and Grading Requirements

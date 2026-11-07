@@ -349,34 +349,26 @@ through the app (Offline demo AI off; `docs/evidence/screenshots/01` to `04`), b
 
 ## 15. AI collaboration reflection
 
-> **DRAFT for review.** First-person notes based on what happened during development. Edit anything that does not match
-> your own experience before submitting.
+I used Claude Code throughout development to help plan, implement and test MoodMix AI. MoodMix AI itself is not an agentic
+application. I learned that AI suggestions still need careful review: some worked well, others had to change to fit my project.
 
-**An AI suggestion I accepted.** When my first real Gemini command only said `llm_error`, I asked Claude to investigate.
-It traced the problem to the error handler: every HTTP error other than 401, 403, 429 and 5xx fell through to one generic error
-class, and the status code was never shown. Its fix was to classify 400, 401, 403, 404 and 429 separately and add a
-diagnostic line with the status and a redacted message. I accepted that and ran the command again. The diagnostic showed
-`HTTP 404 NOT_FOUND`: the default model `gemini-2.5-flash` was no longer available to new users. So the cause was the model name,
-not my key or the request format. Claude then suggested checking the current model list in Google AI Studio instead of
-guessing an ID; I did, picked `gemini-3.5-flash-lite`, and the real run worked. I trusted the fix because mocked tests
-covered the classification and my live run confirmed the cause.
+**A suggestion I accepted.** My first real Gemini command only reported `llm_error`. Claude found that HTTP 400, 404 and
+other errors fell through to one generic error class with no status code, and added separate error classes and a sanitized
+diagnostic. The next run showed `HTTP 404 NOT_FOUND`: the default model was no longer available to new users. I looked up the
+current model in Google AI Studio, chose `gemini-3.5-flash-lite`, and the real run worked. I trusted the fix because mocked
+tests covered the classification and my live run confirmed the cause.
 
-**An AI suggestion I rejected and had revised.** In the Phase 3 plan, Claude proposed logging a short hash of each request so
-failures could be correlated without storing the text. I rejected that: I decided reliability logs should not contain raw
-prompts or input hashes at all, only operational metadata such as event type, status, latency and input length. Claude
-revised the plan and the code, and the tests now check that no text or hash field can reach the log. In the same review
-I narrowed the proposed prompt-injection detector so that ordinary music requests such as "ignore distractions" or "forget my
-previous music preferences" are not rejected, and asked for tests of both malicious and legitimate wording.
+**A suggestion I rejected and had revised.** The Phase 3 plan logged a short hash of each request. I rejected that: reliability
+logs hold only operational metadata (event, status, latency, input length), with no prompt text and no hashes, and tests check
+this. I also narrowed the prompt-injection detector so ordinary requests such as "ignore distractions" still work.
 
-**Where I still had to check the AI.** The original default model name was marked in a code comment as unverified, and
-that name later failed. Its guess that the 504 timeout came from the 15-second client limit was never confirmed (the next
-error was a 503 overload). In Phase 3 its first input rule conflicted with an existing test, so it relaxed the rule rather than
-editing the test, and it disclosed the one existing test expectation it changed because the behaviour had been
-intentionally changed. The Streamlit UI tests also caught a real bug: the summary panel lagged one rerun behind my edits.
+**Testing an assumption.** My feedback evaluation expected a liked song to reach the top three. The results showed that
+feedback raised its score and rank (#5 to #4) without guaranteeing a top-three position. Rather than change the recommendation
+algorithm to satisfy the test, I revised the evaluation to measure the intended behavior and kept the original failure as a
+documented finding (`H1-finding-top3-not-guaranteed`).
 
-**What I took from this.** AI sped up the code, tests and documentation, but each claim needed an actual run: the model
-name, the error cause and the guardrail behaviour were all settled by output, not by confidence. For my Module 3 notes on
-AI use, see section 9.
+**What I took from this.** Testing assumptions, protecting existing functionality, and treating AI as a development assistant
+rather than automatically correct. The full log is in `ai_interactions.md`. For my Module 3 notes on AI use, see section 9.
 
 ## 16. Intended and non-intended use (MoodMix AI)
 

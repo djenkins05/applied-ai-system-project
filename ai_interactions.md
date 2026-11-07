@@ -2,10 +2,10 @@
 
 ## AI-assisted development log (MoodMix AI)
 
-> **DRAFT for review.** Built from the commit history and the development sessions. Only decisions that actually happened
-> are listed; edit anything that does not match your own recollection. Claude Code was used as a development tool throughout.
-> This is **not** a claim of the "agentic multi-step workflow" stretch feature: MoodMix AI itself runs a fixed pipeline with
-> no planning, tool selection or decision trace (see `docs/rubric_coverage.md`).
+Claude Code assisted with planning, implementing and testing MoodMix AI. MoodMix AI itself is **not** an agentic
+application: it runs a fixed pipeline with no planning, tool selection or decision trace, so the agentic workflow and design
+pattern stretch features are not claimed (see `docs/rubric_coverage.md`). The entries below record only decisions that
+actually happened.
 
 ### Timeline
 
@@ -54,50 +54,10 @@
   code was made robust, and a vacuous always-pass check was removed.
 - Four app screenshots from a real Gemini session (Offline demo AI off, confirmed by me) are saved in `docs/evidence/screenshots/`. Other planned screenshots (ranking modes, manual mode, guardrail rejection, failure fallback, limits) are not captured yet. The rendered architecture diagram is saved as `10_architecture_rendered.png`.
 
----
+### What I learned from AI-assisted development
 
-> **Stretch features only.** Only fill in the sections that apply to stretch features you attempted. If you did not attempt a stretch feature, leave its section blank or delete it. This file is not required for the core project.
+Throughout the development of MoodMix AI, I used Claude Code to help plan, implement, and test new features. However, I learned that AI-generated code and suggestions still require careful review. Some suggestions worked well, such as improving Gemini API error diagnostics, while others needed changes to better fit my project's requirements.
 
----
+One important example was the feedback evaluation. The initial test expected a liked song to reach the top three recommendations, but the results showed that feedback improved the song's score and ranking without guaranteeing a top-three position. Rather than changing the recommendation algorithm to satisfy the test, I revised the evaluation to measure the actual intended behavior and preserved the original failure as documentation.
 
-## Agentic Workflow (SF8)
-
-> **Not claimed.** The log above describes AI-assisted development with Claude Code. MoodMix AI itself has no multi-step agent with observable intermediate decisions, so this stretch section is intentionally left blank.
-
-> Document your experience using an AI agent (e.g., Cursor Agent, Claude, Copilot) to make multi-step changes autonomously.
-
-**What task did you give the agent?**
-
-<!-- Describe the goal you asked the agent to accomplish -->
-
-**Prompts used:**
-
-<!-- Paste the key prompts you gave the agent -->
-
-**What did the agent generate or change?**
-
-<!-- List the files edited, code generated, or commands run -->
-
-**What did you verify or fix manually?**
-
-<!-- Describe anything the agent got wrong or that required human review -->
-
----
-
-## Design Pattern (SF10)
-
-> **Not claimed.** Left blank.
-
-> Document how AI helped you choose or implement a design pattern.
-
-**Which design pattern did you use?**
-
-<!-- e.g., Strategy, Factory, Observer, etc. -->
-
-**How did AI help you brainstorm or implement it?**
-
-<!-- Describe the conversation or suggestions that led to your decision -->
-
-**How does the pattern appear in your final code?**
-
-<!-- Point to the relevant class or method -->
+This experience helped me understand the importance of testing assumptions, protecting existing functionality, and using AI as a development assistant rather than treating its output as automatically correct.
