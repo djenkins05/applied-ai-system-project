@@ -171,6 +171,30 @@ python evals/run_guardrails.py                                           # guard
 Last run: 43/43 passed. These cases test the code paths with scripted responses; they say nothing about how
 the real model behaves on the same inputs.
 
+### Streamlit app and feedback (Phase 4)
+
+```bash
+streamlit run app.py
+```
+
+- **Two ways to choose:** describe your mood in words (Gemini interprets it) or enter manual preferences.
+  Manual genre/mood controls are filled from `data/songs.csv`. A sidebar selector offers all five ranking modes.
+- **Transparency:** the interpretation panel is labelled AI-generated and lets you edit every inferred value
+  (results update instantly, with no AI call). Every song shows its score out of 4.00 and the rule-based engine's
+  scoring reasons; Gemini's one-line explanations are labelled and appear only when they pass the grounding checks.
+- **Like / dislike:** votes adjust the preferences passed to the rule-based recommender and do **not** retrain Gemini.
+  A like adds that song's genre/mood and nudges energy toward it; a dislike nudges energy away and excludes the song for
+  the session (with Undo; "Reset feedback" restores every song at once). The "What your feedback changed" panel lists
+  each adjustment. Rules are in `src/feedback.py`; the unchanged engine still does all scoring.
+- **API use:** only "Find music" and the explicit "Ask Gemini to explain these picks" button contact Gemini. Voting,
+  editing preferences, changing the ranking mode or song count never do (covered by tests).
+- **Failures:** errors show a friendly message with a sanitized technical detail; the manual fallback is a button you
+  press, never automatic. A failed request keeps your text, edits, results and feedback. A new successful text request
+  resets feedback. An "offline demo AI" checkbox uses canned answers (clearly labelled) when Gemini is unavailable.
+
+Tests: `tests/test_feedback.py`, `tests/test_app_controller.py` and `tests/test_app_ui.py` (Streamlit `AppTest`) use mocked
+Gemini only. The script for a short walkthrough is in [docs/evidence/phase4_ui_walkthrough.md](docs/evidence/phase4_ui_walkthrough.md).
+
 ---
 
 ## Sample Recommendation Output
