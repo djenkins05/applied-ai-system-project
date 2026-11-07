@@ -24,15 +24,23 @@ into an interactive AI music assistant using **Python, Streamlit, and the Gemini
 | `src/recommender.py` | Core scoring/ranking logic, dataclasses, `load_songs`. **Protected.** |
 | `src/main.py` | CLI runner and the profile dictionaries. Run as `python src/main.py` (imports `from recommender import ...`). **Protected.** |
 | `data/songs.csv` | 18-song catalog. **Protected.** |
-| `tests/test_recommender.py` | 35 pytest tests (imports `from src.recommender import ...`). **Protected.** |
-| `README.md` | Setup, run instructions, recorded CLI output, experiments, limitations. |
-| `model_card.md` | Model card: data, algorithm, biases, evaluation, intended/non-intended use. |
-| `ai_interactions.md` | Stretch-feature AI log template (agentic workflow, design pattern). |
-| `requirements.txt` | `pandas`, `pytest`, `streamlit` (no Gemini SDK yet). |
+| `tests/test_recommender.py` | 35 original pytest tests: 32 pass, 3 are `xfail(strict=True)` (imports `from src.recommender import ...`). **Protected.** |
+| `README.md` | MoodMix AI overview, quick start, architecture, examples, testing and evaluation summary, then the preserved Module 3 documentation. |
+| `model_card.md` | Model card: Module 3 sections 1–9, then the MoodMix AI extension (sections 10–16). |
+| `ai_interactions.md` | AI-assisted development log (decisions, accepted and rejected suggestions). Stretch sections are intentionally not claimed. |
+| `requirements.txt` | `pandas`, `pytest`, `streamlit`, `google-genai`, `python-dotenv`. |
 
-Planned new files (not yet created): `app.py` (Streamlit UI), `src/llm.py` (Gemini wrapper),
-`src/guardrails.py`, `diagrams/architecture.mmd` (Mermaid), `evals/run_eval.py` (evaluation harness),
-`evals/results/` (saved results), `docs/evidence/`.
+Implemented MoodMix AI files (all new; the protected files above are unchanged):
+- **UI / app logic:** `app.py` (Streamlit UI only), `src/app_controller.py` (UI-independent actions),
+  `src/feedback.py` (like/dislike rules).
+- **AI layer and safety:** `src/llm.py` (Gemini wrapper, injectable client), `src/preferences.py` (validation),
+  `src/explain.py` (grounded explanations), `src/guardrails.py`, `src/fallback.py` (manual preferences),
+  `src/reliability_log.py`, `src/pipeline.py`, `src/env.py`, `src/mock_llm.py`, `src/moodmix_cli.py`.
+- **Diagram and docs:** `diagrams/architecture.mmd`, `docs/rubric_coverage.md`, `docs/evidence/`
+  (`live_gemini_run_1.md`, `examples/`, `reproduce.md`, `phase4_ui_walkthrough.md`).
+- **Evaluation:** `evals/run_eval.py` + `evals/eval_cases.json` (comprehensive harness), `evals/run_guardrails.py` +
+  `evals/guardrail_cases.json` (43 guardrail cases, reused by the harness), saved reports in `evals/results/`.
+- **Tests:** one new test file per module under `tests/` (all mock Gemini).
 
 ## 3. Final Project Goals and Required Features
 1. **Integrated AI feature:** Gemini turns free-text mood/situation input ("rainy Sunday, need to focus")
@@ -82,7 +90,8 @@ retrieval (e.g., catalog + extra song metadata).
 - Gemini access goes through one wrapper with an injectable client so tests can mock it.
   Tests must never call the real API.
 - Secrets: read `GEMINI_API_KEY` from the environment (or `.env`). Never hard-code or print keys.
-  `.env` must be in `.gitignore` before the key is used (currently **not** listed — propose the fix).
+  `.env` (and `.env.*`, `*.key`, `*.pem`, `secrets.*`, `logs/`) are git-ignored; `.env.example` stays tracked and
+  contains no values. Never stage or print `.env`.
 - LLM output is untrusted: request structured JSON, parse and validate it against the catalog's
   known genres/moods and 0–1 ranges before it reaches `score_song`.
 - Add new dependencies to `requirements.txt` only when used; tell me which and why.
@@ -92,20 +101,25 @@ retrieval (e.g., catalog + extra song metadata).
 ## 6. Testing Requirements and Commands
 ```bash
 pip install -r requirements.txt
-pytest                                # current baseline: 32 passed, 3 xfailed
-pytest -v tests/test_recommender.py
-python src/main.py --strategy all     # CLI smoke test (run from repo root)
-streamlit run app.py                  # once the app exists
-python evals/run_eval.py              # once the evaluation harness exists
+pytest                                # current baseline: 493 passed, 3 xfailed
+pytest -v tests/test_recommender.py   # original suite: 32 passed, 3 xfailed
+python src/main.py --strategy all     # original CLI smoke test (run from repo root)
+python -m src.moodmix_cli --mock "I need motivation to work out"   # offline mock CLI
+python -m src.moodmix_cli --genre lofi --mood chill --energy 0.3   # manual-only CLI (no key)
+streamlit run app.py                  # the Streamlit app
+python evals/run_eval.py              # comprehensive evaluation harness (saves evals/results/eval_report.*)
+python evals/run_guardrails.py        # 43-case guardrail evaluation (reused by the harness)
 ```
+Exact reproduction steps and expected outputs: `docs/evidence/reproduce.md`.
 - Baseline must stay green; new features ship with new tests (in new files, e.g.
   `tests/test_llm.py`, `tests/test_guardrails.py`, `tests/test_feedback.py`).
 - Mock Gemini in unit tests. Cover: valid response, malformed JSON, unknown genre/mood, out-of-range
   numbers, empty/very long input, API error/timeout, missing key.
-- **Evaluation harness (deliverable):** `python evals/run_eval.py` runs multiple predefined inputs,
-  prints a pass/fail summary, and saves reproducible results to `evals/results/`. Also add tests for
-  the feedback logic (like/dislike and preference adjustments change subsequent rankings as expected,
-  and reset cleanly).
+- **Evaluation harness (deliverable, implemented):** `python evals/run_eval.py` runs multiple predefined
+  inputs, prints a pass/fail summary, and saves reproducible results to `evals/results/`. Feedback logic is
+  tested (like/dislike and preference adjustments change subsequent rankings as expected, and reset cleanly).
+  Keep expectations independent of the system under test, never weaken a threshold to make a check pass, and
+  report real findings honestly.
 - Reliability evidence = the harness output plus mocked-API tests, saved so I can cite them in the
   README and write-up.
 
@@ -125,26 +139,26 @@ python evals/run_eval.py              # once the evaluation harness exists
   catalog, 15 genres, label-based matching, no listening history, not for real music apps.
   Add an AI-specific section (hallucination, prompt injection, bias in mood interpretation).
 
-## 8. Planned Development Phases
-1. **Baseline & safety net:** run tests, record baseline, add `.env` to `.gitignore` (with approval).
-2. **AI layer:** Gemini wrapper, prompt → structured preferences, validation, mocked tests.
-3. **Guardrails & fallbacks:** input/output checks, error handling, tests.
-4. **Streamlit UI + feedback loop:** text input, strategy selector, results with score reasons + AI
-   explanation; like/dislike buttons on each recommendation and editable preferences (genre, mood,
-   energy, etc.) that update recommendations during the current session (session state only; no
-   persistence required).
-5. **Architecture diagram & docs:** `diagrams/architecture.mmd`, README and model card updates.
-6. **Evaluation harness & reliability evidence:** build `evals/run_eval.py` (multiple predefined
-   inputs, pass/fail summary, saved reproducible results), plus fixed-input runs and screenshots.
-   Document the results in the README.
-7. **Other stretch (optional, in order of value):** specialized prompting → bounded agentic
-   workflow → multi-source retrieval.
-8. **Final polish:** reproduce all evidence from a clean clone, final test run, write-up review.
+## 8. Development Phases and Status
+Phases 1–6 below use the numbering of the development commits (see `ai_interactions.md`).
+1. **Preference validation layer** — done: `src/preferences.py`. (Baseline tests and the `.env` ignore rule were set up first.)
+2. **AI layer** — done: Gemini wrapper, prompt → structured preferences, grounded explanations, mocked tests, CLI, one real live run.
+3. **Guardrails & fallbacks** — done: input/output checks, manual fallback, reliability log, 43-case guardrail demo.
+4. **Streamlit UI + feedback loop** — done: text input, strategy selector, results with score reasons + AI
+   explanation, like/dislike and editable preferences (session state only), UI tests with a mocked Gemini.
+5. **Architecture diagram & docs** — done: `diagrams/architecture.mmd`, README and model card updates, rubric map.
+6. **Evaluation harness** — done: `evals/run_eval.py` (114 graded scenarios, 647 checks, reproducible, Gemini always
+   scripted or canned) plus saved reports; one expectation (H1 top 3) is kept as a documented finding.
+7. **Other stretch (optional)** — not demonstrated and not claimed: specialized prompting, bounded agentic workflow,
+   multi-source retrieval.
+8. **Final polish** — in progress: fresh-clone verification, reflection review (drafts are marked DRAFT until I approve
+   them), screenshots and real-Gemini Streamlit evidence (pending my own captures), then an approved merge and push.
 
 ## 9. Documentation and Grading Requirements
 - **README.md:** keep existing content; add MoodMix AI overview, setup (including API key), run
   commands for CLI and Streamlit, architecture diagram, sample I/O, testing, limitations.
-  (Note: the existing setup snippet has an unclosed code fence — fix only with my OK.)
+  Keep the Module 3 documentation preserved under its own heading; README code fences are balanced
+  (checked) and should stay that way.
 - **Mermaid architecture diagram** at `diagrams/architecture.mmd` (also embedded or linked in the
   README), matching the real code.
 - **Evaluation harness results:** command, pass/fail summary, and saved results file documented in
