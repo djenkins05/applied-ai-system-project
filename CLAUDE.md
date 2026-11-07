@@ -5,7 +5,7 @@ MoodMix AI is my CodePath AI110 final project. It extends my Module 3 **Music Re
 into an interactive AI music assistant using **Python, Streamlit, and the Gemini API**.
 
 **Original system (must keep working):** a content-based, CLI-first recommender.
-- Loads an 18-song catalog from `data/songs.csv`
+- Loads the song catalog from `data/songs.csv` (18 songs in Module 3; now the first 18 rows of a 68-song file)
   (columns: id, title, artist, genre, mood, energy, tempo_bpm, valence, danceability, acousticness).
 - `score_song(user_prefs, song, strategy)` scores each song out of `MAX_SCORE = 4.0` and returns
   `(score, reasons)`: genre match, mood match, and closeness of energy / valence / acousticness
@@ -23,7 +23,7 @@ into an interactive AI music assistant using **Python, Streamlit, and the Gemini
 |---|---|
 | `src/recommender.py` | Core scoring/ranking logic, dataclasses, `load_songs`. **Protected.** |
 | `src/main.py` | CLI runner and the profile dictionaries. Run as `python src/main.py` (imports `from recommender import ...`). **Protected.** |
-| `data/songs.csv` | 18-song catalog. **Protected.** |
+| `data/songs.csv` | ONE catalog of 68 songs: rows 1 to 18 are the original Module 3 songs (**protected, unchanged**, pinned by a test) and rows 19 to 68 are 50 real songs whose numbers are approximate editorial estimates, not Spotify data (see `data/README.md`). No catalog selector. |
 | `tests/test_recommender.py` | 35 original pytest tests: 32 pass, 3 are `xfail(strict=True)` (imports `from src.recommender import ...`). **Protected.** |
 | `README.md` | MoodMix AI overview, quick start, architecture, examples, testing and evaluation summary, then the preserved Module 3 documentation. |
 | `model_card.md` | Model card: Module 3 sections 1–9, then the MoodMix AI extension (sections 10–16). |
@@ -39,6 +39,9 @@ Implemented MoodMix AI files (all new; the protected files above are unchanged):
   `src/reliability_log.py`, `src/pipeline.py`, `src/env.py`, `src/mock_llm.py`, `src/moodmix_cli.py`.
 - **Diagram and docs:** `diagrams/architecture.mmd`, `docs/rubric_coverage.md`, `docs/evidence/`
   (`live_gemini_run_1.md`, `examples/`, `reproduce.md`, `phase4_ui_walkthrough.md`).
+- **Catalog data card:** `data/README.md`. **Unified-catalog evaluation:** `evals/run_unified_catalog.py` (separate report); the 18-song
+  evaluation results are frozen in `evals/results/history/18_song_baseline/` and the pre-correction 68-song results in
+  `evals/results/history/68_song_before_data_corrections/`.
 - **Evaluation:** `evals/run_eval.py` + `evals/eval_cases.json` (comprehensive harness), `evals/run_guardrails.py` +
   `evals/guardrail_cases.json` (43 guardrail cases, reused by the harness), saved reports in `evals/results/`.
 - **Tests:** one new test file per module under `tests/` (all mock Gemini).
@@ -102,7 +105,7 @@ retrieval (e.g., catalog + extra song metadata).
 ## 6. Testing Requirements and Commands
 ```bash
 pip install -r requirements.txt
-pytest                                # current baseline: 501 passed, 3 xfailed
+pytest                                # current baseline: 549 passed, 3 xfailed
 pytest -v tests/test_recommender.py   # original suite: 32 passed, 3 xfailed
 python src/main.py --strategy all     # original CLI smoke test (run from repo root)
 python -m src.moodmix_cli --mock "I need motivation to work out"   # offline mock CLI
@@ -110,6 +113,7 @@ python -m src.moodmix_cli --genre lofi --mood chill --energy 0.3   # manual-only
 streamlit run app.py                  # the Streamlit app
 python evals/run_eval.py              # comprehensive evaluation harness (saves evals/results/eval_report.*)
 python evals/run_guardrails.py        # 43-case guardrail evaluation (reused by the harness)
+python evals/run_unified_catalog.py   # 68-song catalog evaluation (separate report)
 ```
 Exact reproduction steps and expected outputs: `docs/evidence/reproduce.md`.
 - Baseline must stay green; new features ship with new tests (in new files, e.g.
@@ -136,8 +140,8 @@ Exact reproduction steps and expected outputs: `docs/evidence/reproduce.md`.
 - **Transparency:** UI states that parts of the output are AI-generated; keep the score "reasons"
   visible.
 - **Logging:** log errors and guardrail triggers (no API keys, minimal user text).
-- **Known biases/limits to carry forward and be honest about** (from `model_card.md`): tiny 18-song
-  catalog, 15 genres, label-based matching, no listening history, not for real music apps.
+- **Known biases/limits to carry forward and be honest about** (from `model_card.md`): small 68-song
+  catalog (50 real songs with estimated ratings), 15 genres, label-based matching, no listening history, not for real music apps.
   Add an AI-specific section (hallucination, prompt injection, bias in mood interpretation).
 
 ## 8. Development Phases and Status

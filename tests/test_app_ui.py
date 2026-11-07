@@ -16,8 +16,10 @@ SONGS = load_songs(str(ROOT / "data" / "songs.csv"))
 STUDY = "I'm studying for finals"
 
 
-def new_app(client=None, mock=None):
+def new_app(client=None, mock=None, songs=None):
     at = AppTest.from_file(APP, default_timeout=30)
+    if songs is not None:
+        at.session_state["_test_songs"] = songs      # small isolated catalog (test seam in app.py)
     if client is None:
         mock = mock or MockGemini()
         client = GeminiClient(client=mock, model="mock", sleep=lambda _s: None)
@@ -133,7 +135,7 @@ def test_dislike_removes_song_undo_and_reset_restore_it():
 
 
 def test_shortfall_warning_and_immediate_reset():
-    at, _ = new_app()
+    at, _ = new_app(songs=SONGS[:18])       # small isolated catalog: 9 dislikes leave 9 of 18
     find(at)
     at.slider(key="k_slider").set_value(10).run()
     for _ in range(9):

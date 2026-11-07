@@ -189,12 +189,19 @@ def test_reason_text_lists_each_scored_signal():
 
 
 def test_load_songs_reads_the_catalog_with_numeric_types():
-    songs = load_songs(str(Path(__file__).resolve().parent.parent / "data" / "songs.csv"))
-    assert len(songs) == 18
-    first = songs[0]
-    assert isinstance(first["id"], int) and isinstance(first["tempo_bpm"], int)
-    for field in ("energy", "valence", "danceability", "acousticness"):
-        assert isinstance(first[field], float) and 0.0 <= first[field] <= 1.0
+    import hashlib
+
+    csv_path = Path(__file__).resolve().parent.parent / "data" / "songs.csv"
+    songs = load_songs(str(csv_path))
+    assert len(songs) == 68                        # fixed catalog: 18 original rows + 50 real songs
+    assert sorted(song["id"] for song in songs) == list(range(1, 69))
+    # the 18 original rows (header + first 18 lines) are byte-identical to the original Module 3 file
+    original = b"".join(csv_path.read_bytes().splitlines(keepends=True)[:19])
+    assert hashlib.sha256(original).hexdigest() == "7ddfb193f8657ce5f5356df76128b7be388977a5f7d94b2dac9bf472d4b37806"
+    for song in songs:                             # types and ranges for EVERY song, not just the first
+        assert isinstance(song["id"], int) and isinstance(song["tempo_bpm"], int)
+        for field in ("energy", "valence", "danceability", "acousticness"):
+            assert isinstance(song[field], float) and 0.0 <= song[field] <= 1.0
 
 
 # ---------------------------------------------------------------------------

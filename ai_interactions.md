@@ -44,6 +44,15 @@ actually happened.
   top-3 expectation is kept as an ungraded finding (`H1-finding-top3-not-guaranteed`, status NOT MET, with the observed ranks and
   scores). `tests/test_run_eval.py` no longer allows any expected failure.
 
+- **Phase 7: one unified catalog (my decision, with AI help).** I first planned a separate 50-song real catalog with a selector
+  (the work is kept in a git stash as a backup), then decided on ONE `data/songs.csv` with all 68 songs and no selector. Adding the
+  rows broke 12 tests. Claude investigated each cause instead of assuming one: size assumptions, fixtures that depended on the
+  top-ranked song, a "Taylor Swift" test input that became a real catalog artist, a 99% claim that became true, and harness
+  expectations written for 18 songs. I approved replacing size-specific assertions with stronger ones (one edit to the protected
+  `tests/test_recommender.py`), six grounding fixes found with real names (each with a regression test written first), a new
+  rank measurement for H1, a replacement expectation for A1 (original kept as an ungraded finding), and freezing the 18-song
+  evaluation results as history. The scoring algorithm was not changed.
+
 ### Problems found by checking
 
 - The first real run failed with a retired model (404), then a 504 and a 503. A timeout increase from 15 s to 45 s was made for the 504, but whether the timeout was the cause was never confirmed; the 503 was a Gemini overload.

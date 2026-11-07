@@ -1,0 +1,53 @@
+MoodMix AI: unified 68-song catalog evaluation (scripted Gemini, offline)
+Command: python evals/run_unified_catalog.py
+Expectations come from catalog labels and musical sense, set before the first run. The 50 real songs' ratings are
+approximate editorial estimates (not Spotify data); Gemini is simulated, so this does not measure the real model.
+
+PASS  RC1 data quality and schema (5/5 checks)
+      ok   68 songs, ids 1 to 68  [68]
+      ok   first 18 rows byte-identical to the Module 3 file  [sha256 matches the original file]
+      ok   15 genres and 14 moods  [15 genres, 14 moods]
+      ok   unique titles
+      ok   0-1 ranges and tempo 40-220
+PASS  RC2 workout request (2/2 checks)
+      ok   top 3 are all high energy (>= 0.75)  [Gym Hero, Levels, Ace of Spades]
+      ok   top 1 genre is one of the requested  [pop]
+PASS  RC3 study request (2/2 checks)
+      ok   top 3 are low energy (<= 0.45)  [Monday Loop, Music for Airports 1/1, Aruarian Dance]
+      ok   top 1 genre is one of the requested  [lofi]
+PASS  RC4 sleep request (1/1 checks)
+      ok   top 1 is calm and acoustic  [Clair de Lune]
+PASS  RC5 party request (1/1 checks)
+      ok   top 3 are positive (valence >= 0.6)  [Uptown Funk, Levitating, Shake It Off]
+PASS  RC6 sad request (1/1 checks)
+      ok   a melancholic or reflective song is in the top 5  [melancholic, reflective]
+PASS  RC7 every genre is reachable (15/15 checks)
+PASS  RC8 every mood is reachable (14/14 checks)
+PASS  RC9 engine equality, determinism, all strategies (3/3 checks)
+      ok   identical on repeat
+      ok   equals the original engine run directly
+      ok   all five strategies rank all 50 songs
+PASS  RC10 like a new-genre song (3/3 checks)
+      ok   liked song's score increases  [1.03 -> 3.79]
+      ok   liked song's rank improves  [#40 -> #1]
+      ok   deterministic
+PASS  RC11 dislike excludes and reset restores (3/3 checks)
+      ok   disliked song is excluded
+      ok   exclusion listed
+      ok   reset restores the baseline exactly
+PASS  RC12 no extra Gemini calls (2/2 checks)
+      ok   interpretation is exactly one Gemini call  [1]
+      ok   voting and re-ranking make no Gemini call  [0 calls]
+PASS  RC13 injection rejected before any API call (2/2 checks)
+      ok   injection rejected  [input]
+      ok   no Gemini call was made  [0 calls]
+PASS  RC14 grounding with real, punctuated names (7/7 checks)
+PASS  RC15 original songs stay reachable (18/18 checks)
+
+Diagnostics (not graded, never counted as pass or fail):
+  - original songs outside the top 3 for a query built from their own labels and values: none (ties with other songs are legitimate; rank is not graded)
+  - how many of the top 10 are original (ids 1-18) songs, per request: {'study': 4, 'workout': 4, 'sleep': 2, 'party': 4} (real songs outnumber the originals about 3 to 1)
+
+Scenarios: 15/15 passed
+Checks:    79/79 passed
+Overall: PASS

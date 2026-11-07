@@ -17,9 +17,31 @@ Parts of the interface are AI-generated and are labelled as such. The engine's s
 ## Original project (Module 3)
 
 MoodMix AI extends the **Music Recommender Simulation** from Module 3: a content-based, CLI-first recommender over an
-18-song catalog with five ranking strategies and 35 tests. That project is preserved in full, unchanged, in
+18-song catalog with five ranking strategies and 35 tests. That project is preserved in full, in
 [Original Project: Music Recommender Simulation (Module 3)](#original-project-music-recommender-simulation-module-3)
-below, and `python src/main.py` still runs it.
+below, and `python src/main.py` still runs it. Its 18 songs are now rows 1 to 18 of the larger catalog described next, so
+**the Module 3 CLI prints different rankings than the output captured in the preserved Module 3 section** (that output is
+historical, from the 18-song file).
+
+## Song catalog (one file, 68 songs)
+
+`data/songs.csv` is a single catalog of **68 songs**: my 18 original Module 3 rows (kept exactly as they were) plus **50 real,
+commercially released songs** across the same 15 genres and 14 moods. There is no catalog selector; the app, the CLIs, the tests
+and the evaluation all use this one file. See the data card, [data/README.md](data/README.md).
+
+- **The numbers for the 50 real songs are estimates.** Their energy, valence, acousticness, danceability and tempo are
+  **approximate editorial estimates** I made with AI assistance, **not Spotify or any official audio-feature data**, and were
+  not measured from audio. Titles and artists were checked against web sources. The 18 original rows keep their Module 3 values.
+- **Reviewed and corrected:** after a data-quality review I corrected nine rows (three credits, two genre labels, four numbers; the 18
+  original rows untouched); results from before are frozen in `evals/results/history/68_song_before_data_corrections/`. The data card
+  lists known inconsistencies (the rap vs hip-hop label split, tempo half-time ambiguity, rough acousticness for electronic pieces).
+- **Limits:** real songs outnumber the originals about 3 to 1, so results are mostly real songs; mostly English-language and
+  Western popular music; "ominous" has 2 songs and "focused" and "reflective" 3 each; one label per song.
+- **Grounding with real names:** AI explanations that name another catalog song or artist are rejected. Ambiguous single-word
+  names (for example the song "Levels" or the artist "Mario") can make a harmless explanation be rejected; the app then shows the
+  engine's reasons. Featured credits (for example "Nujabes ft. Cise Starr & Akin") are handled per credited name.
+- **Evidence from before the catalog grew:** the four app screenshots and the rendered architecture image were captured with the
+  18-song catalog, and the earlier evaluation results are frozen in `evals/results/history/18_song_baseline/`.
 
 ## Quick start
 
@@ -87,7 +109,7 @@ flowchart TD
     E1["recommender.recommend_songs / score_song, 5 ranking strategies"]
   end
 
-  D[("data/songs.csv, 18 songs")]
+  D[("data/songs.csv, 68 songs (18 original + 50 real)")]
   F1["Friendly error + sanitized diagnostic (fallback_available)"]
   M1["fallback.manual_to_preferences: same validation as Gemini output"]
   LOG["reliability_log: event, status, latency, lengths only (no user text, no keys)"]
@@ -133,6 +155,9 @@ Manual-only mode skips Gemini entirely, and the manual fallback after a failure 
 Likes and dislikes change the preferences passed to the engine; they do not retrain Gemini or alter the scoring rules.
 
 ## Sample end-to-end examples
+
+> The three examples below were captured when the catalog had 18 songs (before the 50 real songs were added), so the songs shown
+> are from that catalog and a fresh run would list different ones. They are kept as historical evidence.
 
 Each example is genuine captured output. Examples 2 and 3 are re-run offline from the exact command shown, and the
 full captures (including exit codes) are in `docs/evidence/examples/`.
@@ -329,8 +354,10 @@ more) is shown in `evals/results/guardrails.txt`; those cases use a simulated Ge
 
 | What | Command | Result when last run (2026-11-07) |
 |---|---|---|
-| Full test suite (Gemini always mocked, network blocked) | `python3 -m pytest` | 501 passed, 3 xfailed (the 3 are the known-bug tests in the Module 3 suite) |
-| Comprehensive evaluation harness, scripted/mock Gemini | `python evals/run_eval.py` | 114/114 new scenarios and 647/647 checks passed (plus 1 documented finding, below); saved to `evals/results/eval_report.txt` and `.json`; identical on rerun |
+| Full test suite (Gemini always mocked, network blocked) | `python3 -m pytest` | 549 passed, 3 xfailed (the 3 are the known-bug tests in the Module 3 suite) |
+| Comprehensive evaluation harness, scripted/mock Gemini | `python evals/run_eval.py` | 114/114 new scenarios and 649/649 checks passed on the 68-song catalog (plus 2 documented findings, below); saved to `evals/results/eval_report.txt` and `.json`; identical on rerun |
+| Unified-catalog evaluation, scripted Gemini | `python evals/run_unified_catalog.py` | 15/15 scenarios and 79/79 checks passed (plus 2 ungraded diagnostics); saved to `evals/results/unified_catalog.txt` and `.json` |
+| **Historical** 18-song results (frozen) | `evals/results/history/18_song_baseline/` | 114/114 scenarios and 647/647 checks, 43/43 guardrails; not comparable with the 68-song results |
 | Guardrail and reliability cases, simulated Gemini (reused by the harness) | `python evals/run_guardrails.py` | 43/43 passed; saved to `evals/results/guardrails.txt` and `.json` |
 | Streamlit UI | included in the suite (`tests/test_app_ui.py`, Streamlit `AppTest`) | passes with a mocked Gemini |
 | Real Gemini | `python3 -m src.moodmix_cli "I'm studying for finals"` | one successful live run captured (Example 1) |
@@ -343,7 +370,7 @@ to the new totals.
 
 | Category | Scenarios passed | Checks passed |
 |---|---|---|
-| A. Recommendation correctness (scripted interpretations) | 6/6 | 58/58 |
+| A. Recommendation correctness (scripted interpretations; + 1 documented finding) | 6/6 | 60/60 |
 | B. Moods and activities (canned mock scenarios) | 6/6 | 53/53 |
 | C. Invalid input | 13/13 | 78/78 |
 | D. Prompt structure and injection resistance | 6/6 | 40/40 |
@@ -353,14 +380,23 @@ to the new totals.
 | H. Feedback-driven ranking (+ 1 documented finding) | 10/10 | 33/33 |
 | I. Explanation grounding (+ 6 ungraded probes) | 28/28 | 51/51 |
 | K. Determinism | 1/1 | 1/1 |
-| **New total** | **114/114** | **647/647** |
+| **New total (68-song catalog)** | **114/114** | **649/649** |
 | Reused guardrail suite (`evals/run_guardrails.py`) | 43/43 | 136 expectation entries |
 
-Checks by basis: independent 219/219, specification 64/64, invariant 355/355, regression 9/9. "Independent" expectations were
+Checks by basis: independent 221/221, specification 64/64, invariant 355/355, regression 9/9. "Independent" expectations were
 written from catalog attributes and the documented design before any output was inspected; "regression" checks compare the
 system with existing code and can only detect change.
 
-**Finding: feedback does not guarantee a top-k position.** The first version of scenario `H1-like-new-genre` expected that liking
+**Findings after the catalog grew from 18 to 68 songs.** Two expectations written for the 18-song catalog changed, and both
+are recorded rather than hidden. (1) `A1-jazz-coffee-shop` expected the top pick to be *Coffee Shop Stories*; with real jazz songs
+in the catalog the top pick is now *Take Five* (3.98). The graded A1 now checks the intended behavior (a jazz top pick; the top 3
+all jazz and within 0.15 of the energy target), written before the harness was re-run, and the original expectation is the ungraded
+finding `A1-finding-original-top-pick` (NOT MET; it was MET with 18 songs). (2) The H1 finding below now reports ranks among all
+68 songs (rank 19 to 7, score 1.78 to 3.85, still NOT MET); the old measurement only saw the returned top 10 and could not
+compute a rank for a song outside it. The shortfall scenario H7 and the shortfall tests now use a small isolated catalog (the
+first 18 rows) so the shortfall is genuine. The original 18-song results are preserved in `evals/results/history/18_song_baseline/`.
+
+**Finding: feedback does not guarantee a top-k position.** (The numbers in this paragraph are the original 18-song result.) The first version of scenario `H1-like-new-genre` expected that liking
 *Coffee Shop Stories* (jazz) would lift it into the top 3 (written before the first run). It did not: the song rose from #5
 (score 1.78) to #4 (score 3.85) and no further, because four catalog songs (Library Rain, Spacewalk Thoughts, Focus Flow,
 Midnight Coding) already matched the user's chosen genres and moods on every label and scored 3.84 to 3.94. The first harness
@@ -379,7 +415,7 @@ not list such as "the 90s" or "won several awards") all 6 were accepted. So the 
 **not** judge whether an explanation is generally true, and passing does not mean every AI explanation is correct.
 
 **What is not reported, and why.** No precision/recall/NDCG, success rate, average score, diversity or latency numbers: with
-18 songs (13 of 15 genres have one song), scripted Gemini and hand labels they would be misleading. These results say
+a 68-song catalog (50 songs with estimated ratings), scripted Gemini and hand labels they would be misleading. These results say
 nothing about how well real Gemini interprets text. Exact commands to reproduce everything:
 [docs/evidence/reproduce.md](docs/evidence/reproduce.md).
 
@@ -448,7 +484,7 @@ streamlit run app.py
 ```
 
 - **Two ways to choose:** describe your mood in words (Gemini interprets it) or enter manual preferences.
-  Manual genre/mood controls are filled from `data/songs.csv`. A sidebar selector offers all five ranking modes.
+  Manual genre/mood controls are filled from `data/songs.csv` (68 songs). A sidebar selector offers all five ranking modes.
 - **Transparency:** the interpretation panel is labelled AI-generated and lets you edit every inferred value
   (results update instantly, with no AI call). Every song shows its score out of 4.00 and the rule-based engine's
   scoring reasons; Gemini's one-line explanations are labelled and appear only when they pass the grounding checks.
@@ -488,7 +524,7 @@ Gemini only. The script for a short walkthrough is in [docs/evidence/phase4_ui_w
 
 ## Limitations and responsible use
 
-- Tiny catalog (18 songs, 15 genres), label-based matching, no listening history. This is a class project, not a music service.
+- Small catalog (68 songs, 15 genres; 50 of them real songs with approximate estimated ratings, not Spotify data), label-based matching, no listening history. This is a class project, not a music service.
 - Gemini can misread a mood or reflect bias in how it interprets language. Its output is validated, but a plausible
   misreading is not detectable. The interpretation panel exists so you can check and edit it.
 - Prompt-injection screening is deliberately narrow and is one layer among several; it will not catch everything.
@@ -499,6 +535,10 @@ See [model_card.md](model_card.md) for the full discussion.
 ---
 
 # Original Project: Music Recommender Simulation (Module 3)
+
+> **Historical section.** Everything below documents the Module 3 version over its original **18-song** catalog. The output captured
+> below was produced with that 18-song file; `data/songs.csv` now has 68 songs (see "Song catalog" above), so `python src/main.py`
+> prints different rankings today.
 
 The sections below are the original Module 3 documentation, kept as written (only the template placeholder in the
 project summary was replaced with a description of what the project does).

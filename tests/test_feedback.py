@@ -20,6 +20,13 @@ def songs():
     return load_songs("data/songs.csv")
 
 
+@pytest.fixture(scope="module")
+def small(songs):
+    """A small isolated catalog (the first 18 rows) so shortfall conditions do not depend on the production catalog size."""
+    assert len(songs) >= 18 and songs[0]["id"] == 1 and songs[17]["id"] == 18
+    return songs[:18]
+
+
 def base(**kw):
     data = dict(genres=["lofi"], moods=["chill"], target_energy=0.3)
     data.update(kw)
@@ -187,9 +194,9 @@ def test_baseline_titles_show_the_ranking_without_feedback(songs):
     assert out.baseline_titles == expected
 
 
-def test_shortfall_message_when_too_few_songs_remain(songs):
-    dislikes = [(s["id"], DISLIKE) for s in songs[:16]]                # 2 songs left
-    out = recommend_with_feedback(base(), log_of(*dislikes), songs, k=5)
+def test_shortfall_message_when_too_few_songs_remain(small):
+    dislikes = [(s["id"], DISLIKE) for s in small[:16]]                # 2 songs left
+    out = recommend_with_feedback(base(), log_of(*dislikes), small, k=5)
     assert len(out.result.recommendations) == 2
     assert "Only 2 of the 5" in out.message and "Undo a dislike or reset feedback" in out.message
 
@@ -199,10 +206,10 @@ def test_all_songs_disliked_gives_an_empty_list_not_a_crash(songs):
     assert out.result.ok and out.result.recommendations == [] and out.message
 
 
-def test_reset_restores_the_original_candidate_pool(songs):
-    log = log_of(*[(s["id"], DISLIKE) for s in songs[:16]])
+def test_reset_restores_the_original_candidate_pool(small):
+    log = log_of(*[(s["id"], DISLIKE) for s in small[:16]])
     log.reset()
-    out = recommend_with_feedback(base(), log, songs, k=5)
+    out = recommend_with_feedback(base(), log, small, k=5)
     assert len(out.result.recommendations) == 5 and out.message is None and out.excluded == []
 
 

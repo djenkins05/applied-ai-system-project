@@ -1,0 +1,69 @@
+id,title,artist,genre,mood,energy,tempo_bpm,valence,danceability,acousticness
+1,Sunrise City,Neon Echo,pop,happy,0.82,118,0.84,0.79,0.18
+2,Midnight Coding,LoRoom,lofi,chill,0.42,78,0.56,0.62,0.71
+3,Storm Runner,Voltline,rock,intense,0.91,152,0.48,0.66,0.10
+4,Library Rain,Paper Lanterns,lofi,chill,0.35,72,0.60,0.58,0.86
+5,Gym Hero,Max Pulse,pop,intense,0.93,132,0.77,0.88,0.05
+6,Spacewalk Thoughts,Orbit Bloom,ambient,chill,0.28,60,0.65,0.41,0.92
+7,Coffee Shop Stories,Slow Stereo,jazz,relaxed,0.37,90,0.71,0.54,0.89
+8,Night Drive Loop,Neon Echo,synthwave,moody,0.75,110,0.49,0.73,0.22
+9,Focus Flow,LoRoom,lofi,focused,0.40,80,0.59,0.60,0.78
+10,Rooftop Lights,Indigo Parade,indie pop,happy,0.76,124,0.81,0.82,0.35
+11,Heart on Ice,Rod Wave,hip-hop,melancholic,0.38,78,0.19,0.58,0.42
+12,Love Yourz,J. Cole,rap,reflective,0.48,84,0.65,0.64,0.28
+13,First Day Out,Tee Grizzley,trap,aggressive,0.94,98,0.35,0.82,0.06
+14,Let Me Love You,Mario,R&B,romantic,0.54,94,0.72,0.67,0.31
+15,Rock with You,Michael Jackson,disco,playful,0.76,114,0.89,0.86,0.12
+16,Levels,Avicii,EDM,uplifting,0.95,126,0.94,0.88,0.02
+17,Clair de Lune,Claude Debussy,classical,dreamy,0.14,66,0.29,0.18,0.98
+18,Enter Sandman,Metallica,metal,ominous,0.97,123,0.22,0.48,0.01
+19,Uptown Funk,Mark Ronson ft. Bruno Mars,pop,happy,0.85,115,0.93,0.86,0.03
+20,Levitating,Dua Lipa,pop,playful,0.80,103,0.90,0.70,0.05
+21,Shake It Off,Taylor Swift,pop,playful,0.78,160,0.94,0.65,0.12
+22,Someone Like You,Adele,pop,melancholic,0.30,135,0.25,0.56,0.89
+23,Dancing Queen,ABBA,disco,happy,0.80,101,0.85,0.78,0.25
+24,Stayin' Alive,Bee Gees,disco,intense,0.72,104,0.75,0.75,0.12
+25,Don't Stop 'Til You Get Enough,Michael Jackson,disco,uplifting,0.80,119,0.90,0.82,0.10
+26,Stairway to Heaven,Led Zeppelin,rock,moody,0.45,82,0.35,0.30,0.40
+27,Back in Black,AC/DC,rock,intense,0.87,94,0.70,0.55,0.02
+28,Smells Like Teen Spirit,Nirvana,rock,aggressive,0.92,117,0.50,0.50,0.00
+29,Livin' on a Prayer,Bon Jovi,rock,uplifting,0.80,123,0.60,0.55,0.05
+30,Master of Puppets,Metallica,metal,aggressive,0.93,212,0.30,0.30,0.00
+31,Iron Man,Black Sabbath,metal,ominous,0.70,76,0.30,0.35,0.02
+32,Ace of Spades,Motörhead,metal,intense,0.95,140,0.55,0.30,0.00
+33,Wake Me Up,Avicii,EDM,uplifting,0.78,124,0.65,0.53,0.04
+34,Strobe,deadmau5,EDM,dreamy,0.60,128,0.30,0.55,0.02
+35,Scary Monsters and Nice Sprites,Skrillex,EDM,aggressive,0.95,140,0.35,0.65,0.01
+36,Lose Yourself,Eminem,hip-hop,intense,0.85,171,0.10,0.70,0.03
+37,Empire State of Mind,JAY-Z ft. Alicia Keys,hip-hop,uplifting,0.65,87,0.60,0.55,0.22
+38,Hypnotize,The Notorious B.I.G.,hip-hop,playful,0.75,94,0.85,0.85,0.08
+39,HUMBLE.,Kendrick Lamar,rap,aggressive,0.62,150,0.40,0.90,0.00
+40,Gold Digger,Kanye West,rap,playful,0.70,93,0.70,0.62,0.10
+41,In Da Club,50 Cent,rap,intense,0.72,90,0.76,0.90,0.03
+42,Sicko Mode,Travis Scott,trap,moody,0.73,155,0.45,0.83,0.01
+43,Bad and Boujee,Migos,trap,playful,0.65,127,0.35,0.90,0.05
+44,XO Tour Llif3,Lil Uzi Vert,trap,melancholic,0.60,155,0.40,0.80,0.02
+45,Redbone,Childish Gambino,R&B,dreamy,0.35,81,0.60,0.70,0.20
+46,No Scrubs,TLC,R&B,playful,0.60,93,0.70,0.70,0.20
+47,Best Part,Daniel Caesar & H.E.R.,R&B,romantic,0.35,75,0.50,0.50,0.75
+48,Take Five,Dave Brubeck Quartet,jazz,relaxed,0.35,172,0.65,0.45,0.90
+49,So What,Miles Davis,jazz,chill,0.30,136,0.50,0.55,0.90
+50,Fly Me to the Moon,Frank Sinatra,jazz,romantic,0.30,120,0.55,0.50,0.85
+51,What a Wonderful World,Louis Armstrong,jazz,reflective,0.20,68,0.60,0.30,0.90
+52,Gymnopédie No. 1,Erik Satie,classical,dreamy,0.05,72,0.35,0.30,0.98
+53,Moonlight Sonata (1st Movement),Ludwig van Beethoven,classical,reflective,0.10,55,0.15,0.15,0.98
+54,The Four Seasons: Spring,Antonio Vivaldi,classical,uplifting,0.60,120,0.80,0.35,0.95
+55,Canon in D,Johann Pachelbel,classical,relaxed,0.20,65,0.50,0.40,0.95
+56,Discreet Music,Brian Eno,ambient,relaxed,0.05,60,0.30,0.15,0.70
+57,An Ending (Ascent),Brian Eno,ambient,dreamy,0.08,60,0.25,0.10,0.60
+58,Music for Airports 1/1,Brian Eno,ambient,focused,0.06,60,0.30,0.10,0.85
+59,Aruarian Dance,Nujabes,lofi,chill,0.35,85,0.50,0.60,0.70
+60,Monday Loop,tomppabeats,lofi,focused,0.30,80,0.45,0.60,0.65
+61,Feather,Nujabes ft. Cise Starr & Akin,lofi,chill,0.45,85,0.55,0.65,0.40
+62,Blinding Lights,The Weeknd,synthwave,uplifting,0.80,171,0.60,0.50,0.00
+63,Nightcall,Kavinsky,synthwave,moody,0.60,91,0.30,0.55,0.05
+64,A Real Hero,College ft. Electric Youth,synthwave,romantic,0.45,96,0.50,0.55,0.10
+65,As It Was,Harry Styles,indie pop,moody,0.73,174,0.66,0.52,0.34
+66,Electric Feel,MGMT,indie pop,playful,0.70,103,0.75,0.80,0.10
+67,Dog Days Are Over,Florence + The Machine,indie pop,happy,0.80,150,0.70,0.55,0.40
+68,Skinny Love,Bon Iver,indie pop,melancholic,0.30,76,0.20,0.35,0.90

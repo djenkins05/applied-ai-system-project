@@ -41,7 +41,8 @@ def facts(ranked):
 
 @pytest.fixture(scope="module")
 def top(facts):
-    return facts["songs"][0]     # Library Rain by Paper Lanterns (lofi, chill)
+    # Chosen by title, not by rank: the top result depends on the catalog, and these tests need a fixed song.
+    return next(fact for fact in facts["songs"] if fact["title"] == "Library Rain")   # Paper Lanterns (lofi, chill)
 
 
 def problem(why, top, prefs, songs):
@@ -85,7 +86,7 @@ def test_true_score_and_feature_claims_are_accepted(top, prefs, songs):
     ("Similar to Gym Hero in spirit.", "another song"),
     ("Reminds you of Max Pulse.", "another artist"),
     ('A cousin of "Midnight Dreams" for sure.', "unknown title"),
-    ("This track by Taylor Swift is soothing.", "unknown artist"),
+    ("This track by Radiohead is soothing.", "unknown artist"),     # an artist who is not in the catalog
     ("Released in 2019 to wide acclaim.", "year"),
     ("From the album Rainy Days.", "unsupported"),
     ("Its lyrics speak of calm.", "unsupported"),

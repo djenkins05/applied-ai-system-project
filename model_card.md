@@ -1,6 +1,6 @@
 # 🎧 Model Card: MoodMix AI
 
-> **MoodMix AI extends my Module 3 recommender.** Sections 1 to 9 describe the original Module 3 recommender (named MatchVibe 1.0 at the time) and are kept as written. Sections 10 to 16 add the Gemini-powered MoodMix AI features, their evaluation, risks and my AI collaboration reflection.
+> **MoodMix AI extends my Module 3 recommender.** Sections 1 to 9 describe the original Module 3 recommender (named MatchVibe 1.0 at the time) and are kept as written. Sections 10 to 17 add the Gemini-powered MoodMix AI features, their evaluation, risks, my AI collaboration reflection and the larger 68-song catalog. Sections 1 to 9 describe the 18-song catalog; `data/songs.csv` now has 68 songs (see section 17).
 
 ## 1. Model Name
 
@@ -268,7 +268,7 @@ can also write one short sentence per recommended song explaining the fit.
 - Like/dislike feedback in the Streamlit app. It adjusts the preferences passed to the engine and excludes disliked
   songs for the session. It does not retrain Gemini and does not change the scoring rules.
 
-**Data.** The catalog is unchanged (18 songs, 15 genres, 14 moods). The user's text is sent to Google's Gemini API, and for
+**Data.** One catalog of 68 songs (my 18 original rows unchanged plus 50 real songs; 15 genres, 14 moods; see section 17). The user's text is sent to Google's Gemini API, and for
 explanations so are the facts of the recommended songs (title, artist, genre, mood, audio features, score, reasons).
 
 ## 11. Guardrails and reliability
@@ -287,22 +287,39 @@ explanations so are the facts of the recommended songs (title, artist, genre, mo
 
 ## 12. Evaluation (what was actually run)
 
-| Evidence | Result |
-|---|---|
-| Automated tests (`python3 -m pytest`; Gemini always mocked, network blocked) | 501 passed, 3 xfailed (the 3 are known-bug tests from Module 3), run 2026-11-07 |
-| Comprehensive harness (`python evals/run_eval.py`, scripted or canned Gemini, no network) | 114/114 new scenarios and 647/647 checks passed across 9 categories (recommendation correctness, mock mood scenarios, invalid input, prompt structure, malformed responses, API failures, manual fallback, feedback, grounding); identical on rerun; saved in `evals/results/eval_report.txt` and `.json`. Plus one documented finding (below) |
-| Guardrail and reliability cases (`python evals/run_guardrails.py`, 43 fixed cases, simulated Gemini) | 43/43 passed; saved in `evals/results/guardrails.txt` and `.json`; identical across reruns |
-| One real Gemini run through the CLI (`gemini-3.5-flash-lite`) | succeeded; output in `docs/evidence/live_gemini_run_1.md` |
-| Errors observed with real Gemini before that run | HTTP 404 for `gemini-2.5-flash` (the API said it is no longer available to new users), then HTTP 504 and HTTP 503 for `gemini-3.8-flash`; causes of the 503/504 were not established |
+Everything automated below runs offline against a **mocked, scripted or canned Gemini** (no network, no API key). It checks my
+code, my validation and my data, **not** how accurate real recommendations are or how well the real model interprets people, so none
+of these results establish real-world recommendation quality. Results are for the final unified 68-song catalog (`data/songs.csv`),
+run on 2026-11-07 and cross-checked against the saved reports in `evals/results/`.
 
-**A finding about feedback.** My first expectation for liking a jazz song (`H1-like-new-genre`) was that it would reach the top 3. It
-moved from #5 (score 1.78) to #4 (score 3.85): four songs already matched both of the user's chosen genres and moods and scored
-3.84 to 3.94, so one like could not overtake all of them. The first run reported this as a failure (113/114 scenarios). After review
-I replaced the scenario with checks of the intended behavior (the liked song's score and rank improve, the result is deterministic,
+| What it measures | Command | Result |
+|---|---|---|
+| Behavior of all code with Gemini mocked: preference validation, guardrails, fallback, feedback rules, grounding, the Streamlit app (`AppTest`) and the data | `python3 -m pytest` | **549 passed, 3 xfailed** |
+| The original Module 3 scoring, ranking and catalog loading (part of the 549) | `python3 -m pytest tests/test_recommender.py` | **32 passed, 3 xfailed** (the 3 are strict known-bug tests from Module 3) |
+| End-to-end scenarios through the real code in 9 categories (recommendation correctness, mock mood requests, invalid input, prompt structure, malformed responses, API failures, manual fallback, feedback, grounding) with checks labelled independent, specification, invariant or regression | `python evals/run_eval.py` | **114/114 scenarios, 649/649 checks** (independent 221, specification 64, invariant 355, regression 9); identical on rerun; plus 8 ungraded items (6 grounding probes and 2 documented findings); saved in `evals/results/eval_report.txt` and `.json` |
+| Input screening, error handling and fallback with a simulated Gemini (reused by the harness, reported separately) | `python evals/run_guardrails.py` | **43/43 scenarios**; saved in `evals/results/guardrails.txt` and `.json` |
+| The unified catalog itself and recommendations over it: data integrity, every genre and mood reachable, requests such as study or workout, feedback, grounding with real names, and the original songs staying reachable | `python evals/run_unified_catalog.py` | **15/15 scenarios, 79/79 checks**, plus 2 ungraded diagnostics; saved in `evals/results/unified_catalog.txt` and `.json` |
+| One real Gemini run through the CLI (`gemini-3.5-flash-lite`) | run by hand | succeeded; output in `docs/evidence/live_gemini_run_1.md` |
+| Errors seen with real Gemini before that run | observed by hand | HTTP 404 for `gemini-2.5-flash` (no longer available to new users), then HTTP 504 and HTTP 503 for `gemini-3.8-flash`; causes of the 503/504 were not established |
+
+**Historical 18-song baseline vs the current 68-song catalog.** The earlier results (114/114 scenarios, 647/647 checks, 43/43
+guardrails) were produced when `data/songs.csv` had only the 18 original songs. They are frozen unchanged in
+`evals/results/history/18_song_baseline/` and are **not comparable** with the current numbers: the catalog, a few harness
+measurements and the A1 scenario changed. Results from the first 68-song version, before nine data corrections to the real-song rows,
+are frozen in `evals/results/history/68_song_before_data_corrections/` (no graded outcome changed). The 50 real songs added after
+the baseline use **approximate editorial metadata that I estimated with AI assistance, not official Spotify audio features** (see
+section 17), so their rankings are only as good as those estimates.
+
+**Findings.** (1) *Feedback does not guarantee a top-k position.* My first expectation for liking a jazz song (`H1-like-new-genre`)
+was that it would reach the top 3. With the original 18 songs it moved from #5 (score 1.78) to #4 (score 3.85) because four songs
+already matched both of the user's chosen genres and moods and scored 3.84 to 3.94, so the first run reported 113/114 scenarios. I
+replaced the scenario with checks of the intended behavior (the liked song's score and rank improve, the result is deterministic,
 and the ranking equals the original engine on the adjusted preferences) and kept the original top-3 expectation in the report as a
-documented finding with its observed numbers. I did not hard-code rank #4, and I did not change the recommendation algorithm. The
-lesson for users is that feedback influences rankings but does not guarantee a specific top-k position, because other songs may still
-be stronger matches. This is a property of the tiny catalog and the feedback rules, not something I tuned away.
+documented finding with its observed numbers. I did not hard-code a rank and did not change the recommendation algorithm. With 68
+songs the same like moves the song from #19 to #7 among all songs, and the finding still holds. (2) *A catalog-specific expectation
+no longer held.* Scenario A1 (a quiet jazz request) expected *Coffee Shop Stories* first; with real jazz songs in the catalog the top
+pick is now *Take Five*. I replaced the expectation with checks of the intended behavior, written before re-running, and kept the
+original as an ungraded finding (it was met with 18 songs).
 
 **Explanation grounding, honestly.** On 25 sentences labelled independently of the validator (within its documented coverage:
 fabricated metadata, unsafe text and faithful sentences), it rejected all 19 bad ones and accepted all 6 faithful ones. On 6
@@ -311,15 +328,16 @@ awards") it accepted all 6. The checks catch fabricated metadata, not general un
 explanation is correct. The labelled set is small and constructed, so these counts are a regression check, not an accuracy estimate.
 
 **Metrics I chose not to report.** Precision, recall or NDCG against human relevance, success rates, average scores, diversity
-percentages and latency would be misleading here: 18 songs (13 of 15 genres with one song), many score ties, scripted Gemini and
+percentages and latency would be misleading here: a 68-song catalog (50 songs with estimated ratings), many score ties, scripted Gemini and
 hand-written labels. Reproduction commands: `docs/evidence/reproduce.md`.
 
 **What was not measured.** There is no measurement of how accurately Gemini interprets real inputs, no user study, and no
-baseline-versus-AI comparison. The guardrail cases use a simulated Gemini, so they test my code paths, not the real
-model's behaviour on hostile input. The grounding checks are heuristics. The feedback constants (genre/mood weights, 0.30
+baseline-versus-AI comparison. Because Gemini is scripted, the guardrail and harness results test my code paths, not the real
+model's behaviour (including on hostile input). The grounding checks are heuristics. The feedback constants (genre/mood weights, 0.30
 like step, 0.15 dislike step) were chosen by hand and not tuned with listeners. The Streamlit app has been tested with
 Streamlit's `AppTest` and a mocked Gemini, and a headless start-up check; I captured four screenshots of a real-Gemini session
-through the app (Offline demo AI off; `docs/evidence/screenshots/01` to `04`), but no recording or transcript.
+through the app (Offline demo AI off; `docs/evidence/screenshots/01` to `04`), taken when the catalog still had 18 songs, but no
+recording or transcript.
 
 ## 13. Limitations and risks specific to the AI feature
 
@@ -329,7 +347,7 @@ through the app (Offline demo AI off; `docs/evidence/screenshots/01` to `04`), b
   validation, explanation grounding), but none is complete. A reworded attack could pass screening and still produce only
   catalog labels, which limits the damage.
 - **Bias in interpretation.** The model's idea of what "studying" or "heartbreak" sounds like reflects its training data and
-  may not fit every culture or language. The 18-song catalog (15 genres, mostly one song each) also limits what can be
+  may not fit every culture or language. The 68-song catalog (15 genres; real songs outnumber the originals about 3 to 1) also limits what can be
   recommended, and the Module 3 biases in section 5 still apply.
 - **Unverifiable explanations.** The checks catch concrete false claims (other songs, scores, years) but cannot prove a vague
   sentence such as "perfect for rainy days".
@@ -375,3 +393,35 @@ rather than automatically correct. The full log is in `ai_interactions.md`. For 
 - **Intended:** a classroom demonstration of combining an LLM interpretation step with a transparent rule-based
   recommender, with guardrails, fallbacks and feedback, over a tiny catalog.
 - **Not intended for:** real music apps, any decision about people or artists, or handling sensitive text. Sections 7 and 13 apply.
+
+## 17. The unified 68-song catalog
+`data/songs.csv` holds **68 songs**: my 18 original Module 3 rows (byte-identical, checked by a test) plus 50 real, commercially
+released songs, with one shared schema and label vocabulary. There is no catalog selector. The data card is `data/README.md`.
+
+**The real-song metadata is subjective.** For the 50 real songs, energy, valence, acousticness, danceability and tempo are
+approximate editorial estimates that I made with AI assistance, **not Spotify or other official data**, and each song gets one
+genre and one mood label that is a judgment call. After a review I corrected nine rows (credits for three songs, two genre labels,
+four acousticness/energy values, one valence); evaluation results from before those corrections are kept in
+`evals/results/history/68_song_before_data_corrections/`. Titles and artists were checked against web sources (some well-known
+titles only loosely). The 18 original rows came from the course starter file (10 songs) plus 8 I added later; the source of their
+numeric values was not recorded, so I do not claim one.
+
+**Label and number limits.**
+- *rap vs hip-hop:* the split is arbitrary and label-based (rap: J. Cole, Kendrick Lamar, Kanye West, 50 Cent; hip-hop: Rod Wave,
+  Eminem, JAY-Z, The Notorious B.I.G., Feather), so a "rap" request skips the hip-hop songs and vice versa.
+- *tempo ambiguity:* half-time and double-time feel make several tempos debatable (Lose Yourself, XO Tour Llif3, Sicko Mode, Take
+  Five, Back in Black). Tempo is never scored.
+- *rough numbers:* for example acousticness of ambient and electronic pieces; most real-song values are rounded to steps of 0.05,
+  unlike the original rows.
+- Only 68 songs; real songs outnumber the originals about 3 to 1, so results are mostly real songs; mostly English-language and
+  Western popular music; "ominous" has 2 songs and "focused" and "reflective" 3 each.
+
+**Limits of explanation grounding.** Gemini never sees the catalog rows, but its explanations are checked against them. The check
+catches other catalog songs and artists, years, albums, lyrics and false scores. It cannot verify real-world facts that are not in the
+data: a true guest vocalist or composer is accepted, and an invented influence ("in the style of Madonna") is accepted too, so a
+passing explanation is not proof that it is true; the engine's reasons stay visible for that reason. Real names also exposed
+grounding problems that I fixed with regression tests (a sentence-final "by Artist." was rejected, featured credits such as
+"Nujabes ft. Cise Starr & Akin" were matched as one string, hyphenated words and curly apostrophes were mishandled, and an
+abbreviated quoted title was rejected). One limitation remains by design: an ambiguous single-word title or artist (for example
+"Levels" or "Mario") can make a harmless explanation be rejected, which is the safe direction because the engine's reasons are shown
+instead. The recommendation algorithm was not changed.

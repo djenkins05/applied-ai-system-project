@@ -29,7 +29,7 @@ flowchart TD
     E1["recommender.recommend_songs / score_song, 5 ranking strategies"]
   end
 
-  D[("data/songs.csv, 18 songs")]
+  D[("data/songs.csv, 68 songs (18 original + 50 real)")]
   F1["Friendly error + sanitized diagnostic (fallback_available)"]
   M1["fallback.manual_to_preferences: same validation as Gemini output"]
   LOG["reliability_log: event, status, latency, lengths only (no user text, no keys)"]

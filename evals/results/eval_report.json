@@ -1,9 +1,9 @@
 {
   "categories": {
     "A": {
-      "checks": 58,
-      "checks_passed": 58,
-      "informational": 0,
+      "checks": 60,
+      "checks_passed": 60,
+      "informational": 1,
       "name": "Recommendation correctness (scripted interpretations)",
       "scenarios": 6,
       "scenarios_passed": 6
@@ -86,20 +86,49 @@
   "failed_scenarios": [],
   "findings": [
     {
-      "explanation": "Feedback influences the ranking but does not guarantee a particular top-k position: other songs can still be stronger matches. Here the songs listed already matched the user's chosen genres and moods on every label, so one like could lift the liked song past some of them but not all.",
-      "id": "H1-finding-top3-not-guaranteed",
+      "explanation": "The unified catalog also contains real jazz songs that are jazz and relaxed, so a different, equally valid jazz song can lead. The graded A1 scenario now checks the intended behavior (a jazz top pick; top 3 all jazz and near the energy target), written before the harness was re-run.",
+      "history_18_song_catalog": "MET (see evals/results/history/18_song_baseline/)",
+      "id": "A1-finding-original-top-pick",
       "observed": {
+        "score_of_top_pick": 3.98,
+        "top_5": [
+          "Take Five",
+          "Coffee Shop Stories",
+          "Fly Me to the Moon",
+          "So What",
+          "What a Wonderful World"
+        ],
+        "top_pick": "Take Five"
+      },
+      "original_expectation": "Top pick is 'Coffee Shop Stories' (written for the 18-song catalog, where it was the only song that was both jazz and relaxed).",
+      "status": "NOT MET"
+    },
+    {
+      "explanation": "Feedback influences the ranking but does not guarantee a particular top-k position: other songs can still be stronger matches. Here the songs listed already matched the user's chosen genres and moods on every label, so one like could lift the liked song past some of them but not all.",
+      "history_18_song_catalog": {
+        "note": "Historical result with the original 18-song catalog (kept in evals/results/history/18_song_baseline/); the rank there was measured among the returned top 10.",
         "rank_after": 4,
         "rank_before": 5,
+        "score_after": 3.85,
+        "score_before": 1.78,
+        "status": "NOT MET"
+      },
+      "id": "H1-finding-top3-not-guaranteed",
+      "observed": {
+        "rank_after": 7,
+        "rank_before": 19,
         "score_after": 3.85,
         "score_before": 1.78
       },
       "original_expectation": "After liking Coffee Shop Stories (jazz), it reaches the top 3 (written before the first run).",
       "songs_already_matching_both_chosen_genre_and_mood": [
+        "Aruarian Dance",
+        "Monday Loop",
         "Library Rain",
         "Spacewalk Thoughts",
         "Focus Flow",
-        "Midnight Coding"
+        "Midnight Coding",
+        "Music for Airports 1/1"
       ],
       "status": "NOT MET"
     }
@@ -191,8 +220,8 @@
   "new_checks": {
     "by_basis": {
       "independent": {
-        "checks": 219,
-        "passed": 219
+        "checks": 221,
+        "passed": 221
       },
       "invariant": {
         "checks": 355,
@@ -208,12 +237,12 @@
       }
     },
     "failed": 0,
-    "passed": 647,
-    "total": 647
+    "passed": 649,
+    "total": 649
   },
   "new_scenarios": {
     "failed": 0,
-    "informational_not_graded": 7,
+    "informational_not_graded": 8,
     "passed": 114,
     "total": 114
   },
@@ -233,13 +262,58 @@
         {
           "basis": "independent",
           "detail": "",
+          "name": "finding_recorded",
+          "passed": true
+        }
+      ],
+      "description": "FINDING (documented, not graded): the original expectation was top pick 'Coffee Shop Stories'; observed 'Take Five'. The catalog grew from 18 to 68 songs.",
+      "finding": {
+        "explanation": "The unified catalog also contains real jazz songs that are jazz and relaxed, so a different, equally valid jazz song can lead. The graded A1 scenario now checks the intended behavior (a jazz top pick; top 3 all jazz and near the energy target), written before the harness was re-run.",
+        "history_18_song_catalog": "MET (see evals/results/history/18_song_baseline/)",
+        "id": "A1-finding-original-top-pick",
+        "observed": {
+          "score_of_top_pick": 3.98,
+          "top_5": [
+            "Take Five",
+            "Coffee Shop Stories",
+            "Fly Me to the Moon",
+            "So What",
+            "What a Wonderful World"
+          ],
+          "top_pick": "Take Five"
+        },
+        "original_expectation": "Top pick is 'Coffee Shop Stories' (written for the 18-song catalog, where it was the only song that was both jazz and relaxed).",
+        "status": "NOT MET"
+      },
+      "id": "A1-finding-original-top-pick",
+      "informational": true,
+      "passed": null
+    },
+    {
+      "category": "A",
+      "checks": [
+        {
+          "basis": "independent",
+          "detail": "",
           "name": "ok",
           "passed": true
         },
         {
           "basis": "independent",
           "detail": "",
-          "name": "top1_title",
+          "name": "top_any_in",
+          "passed": true
+        },
+        {
+          "basis": "independent",
+          "detail": "",
+          "name": "top_none_in",
+          "passed": true
+        },
+        {
+          "basis": "independent",
+          "detail": "",
+          "name": "top_all_near",
           "passed": true
         },
         {
@@ -291,7 +365,7 @@
           "passed": true
         }
       ],
-      "description": "Scripted interpretation: jazz + relaxed + low energy. Only one catalog song is both jazz and relaxed.",
+      "description": "Scripted interpretation: jazz + relaxed + low energy. Replacement expectations for the 68-song catalog (the original 18-song expectation, top pick Coffee Shop Stories, is kept as an ungraded finding): the top pick is a jazz song, and the top 3 are all jazz with energy within 0.15 of the 0.35 target.",
       "id": "A1-jazz-coffee-shop",
       "informational": false,
       "passed": true
@@ -4284,22 +4358,33 @@
           "passed": true
         }
       ],
-      "description": "FINDING (documented, not graded): the original expectation was top 3; observed rank 5 -> 4, score 1.78 -> 3.85. Feedback influences ranking without guaranteeing a specific position.",
+      "description": "FINDING (documented, not graded): the original expectation was top 3; observed rank 19 -> 7, score 1.78 -> 3.85. Feedback influences ranking without guaranteeing a specific position.",
       "finding": {
         "explanation": "Feedback influences the ranking but does not guarantee a particular top-k position: other songs can still be stronger matches. Here the songs listed already matched the user's chosen genres and moods on every label, so one like could lift the liked song past some of them but not all.",
-        "id": "H1-finding-top3-not-guaranteed",
-        "observed": {
+        "history_18_song_catalog": {
+          "note": "Historical result with the original 18-song catalog (kept in evals/results/history/18_song_baseline/); the rank there was measured among the returned top 10.",
           "rank_after": 4,
           "rank_before": 5,
+          "score_after": 3.85,
+          "score_before": 1.78,
+          "status": "NOT MET"
+        },
+        "id": "H1-finding-top3-not-guaranteed",
+        "observed": {
+          "rank_after": 7,
+          "rank_before": 19,
           "score_after": 3.85,
           "score_before": 1.78
         },
         "original_expectation": "After liking Coffee Shop Stories (jazz), it reaches the top 3 (written before the first run).",
         "songs_already_matching_both_chosen_genre_and_mood": [
+          "Aruarian Dance",
+          "Monday Loop",
           "Library Rain",
           "Spacewalk Thoughts",
           "Focus Flow",
-          "Midnight Coding"
+          "Midnight Coding",
+          "Music for Airports 1/1"
         ],
         "status": "NOT MET"
       },

@@ -39,7 +39,7 @@ def test_scenario_and_check_counts_are_reported_separately_and_add_up(report):
     assert report["new_checks"]["total"] == sum(len(s["checks"]) for s in graded)
     assert report["new_checks"]["total"] > report["new_scenarios"]["total"]
     assert sum(v["checks"] for v in report["new_checks"]["by_basis"].values()) == report["new_checks"]["total"]
-    assert report["new_scenarios"]["informational_not_graded"] == 7      # 6 grounding probes + 1 documented finding
+    assert report["new_scenarios"]["informational_not_graded"] == 8      # 6 grounding probes + 2 documented findings (H1, A1)
 
 
 def test_guardrail_cases_are_reused_not_double_counted(report):
@@ -62,13 +62,37 @@ def test_the_original_top3_expectation_is_kept_as_a_documented_finding(report):
     assert "top 3" in finding["original_expectation"]
     assert finding["status"] == "NOT MET"                      # preserved, not hidden and not turned into a pass
     observed = finding["observed"]
-    assert (observed["rank_before"], observed["rank_after"]) == (5, 4)
+    # ranks are measured among ALL catalog songs; the exact values depend on the catalog, so only the behavior is asserted
+    assert observed["rank_before"] is not None and observed["rank_after"] is not None
+    assert observed["rank_after"] < observed["rank_before"] and observed["rank_after"] > 3     # improves, still not top 3
     assert (observed["score_before"], observed["score_after"]) == (1.78, 3.85)
-    assert len(finding["songs_already_matching_both_chosen_genre_and_mood"]) == 4
+    assert len(finding["songs_already_matching_both_chosen_genre_and_mood"]) >= 1
+    history = finding["history_18_song_catalog"]                        # the 18-song result stays documented as history
+    assert (history["rank_before"], history["rank_after"], history["status"]) == (5, 4, "NOT MET")
     assert "does not guarantee" in finding["explanation"]
     scenario = next(s for s in report["scenarios"] if s["id"] == "H1-finding-top3-not-guaranteed")
     assert scenario["informational"] is True and scenario["passed"] is None     # documented, not graded
     assert "FINDING" in run_eval.format_report(report) and "expectation NOT MET" in run_eval.format_report(report)
+
+
+def test_the_original_a1_expectation_is_kept_as_a_documented_finding(report):
+    finding = next(f for f in report["findings"] if f["id"] == "A1-finding-original-top-pick")
+    assert "Coffee Shop Stories" in finding["original_expectation"] and finding["status"] == "NOT MET"
+    assert finding["observed"]["top_pick"] != "Coffee Shop Stories"                 # preserved, not turned into a pass
+    assert finding["history_18_song_catalog"].startswith("MET")
+    scenario = next(s for s in report["scenarios"] if s["id"] == "A1-finding-original-top-pick")
+    assert scenario["informational"] is True and scenario["passed"] is None
+    a1 = next(s for s in report["scenarios"] if s["id"] == "A1-jazz-coffee-shop")      # graded replacement
+    assert a1["passed"] is True and not any(c["name"] == "top1_title" for c in a1["checks"])
+
+
+def test_historical_18_song_baseline_is_preserved_byte_for_byte():
+    history = ROOT / "evals" / "results" / "history" / "18_song_baseline"
+    import hashlib
+    text = (history / "eval_report.txt").read_bytes()
+    assert hashlib.md5(text).hexdigest() == "1cc6865611a507c2a353190ecf674981"
+    assert hashlib.md5((history / "eval_report.json").read_bytes()).hexdigest() == "0d8ff9e8375fc6c3cac23c19cf73c406"
+    assert b"114/114" in text and b"647/647" in text and b"Coffee Shop Stories" in text
 
 
 def test_h1_checks_the_intended_behavior_not_a_hard_coded_rank(report):
@@ -188,3 +212,12 @@ def test_a_disabled_injection_guardrail_is_detected(monkeypatch):
     rep = run_broken()
     assert "D4-injection-rejected-and-not-logged" in extra_failures(rep)
     assert rep["reused_guardrail_suite"]["failed"] > 0 and not rep["overall_pass"]
+
+
+def test_pre_correction_68_song_results_are_preserved_as_history():
+    import hashlib
+    history = ROOT / "evals" / "results" / "history" / "68_song_before_data_corrections"
+    assert hashlib.md5((history / "eval_report.txt").read_bytes()).hexdigest() == "230e0cba2946783e1b2c639f820ca282"
+    assert hashlib.md5((history / "eval_report.json").read_bytes()).hexdigest() == "113961b90f8c805974afdb2dc3cc9da3"
+    assert hashlib.md5((history / "unified_catalog.txt").read_bytes()).hexdigest() == "dd1346cef6b740048c20f8a97fdd1da0"
+    assert (history / "songs_before_corrections.csv").read_text().count("\n") == 69

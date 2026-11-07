@@ -3,8 +3,9 @@ Command: python evals/run_eval.py
 Offline: Gemini is scripted or canned in every scenario (no network, no API key, no .env).
 Scope: this checks my code's behavior. It does not measure how well real Gemini interprets text.
 
-== A. Recommendation correctness (scripted interpretations): 6/6 scenarios, 58/58 checks ==
-[PASS] A1-jazz-coffee-shop: Scripted interpretation: jazz + relaxed + low energy. Only one catalog song is both jazz and relaxed.
+== A. Recommendation correctness (scripted interpretations): 6/6 scenarios, 60/60 checks, 1 informational (not graded) ==
+[INFO] A1-finding-original-top-pick: FINDING (documented, not graded): the original expectation was top pick 'Coffee Shop Stories'; observed 'Take Five'. The catalog grew from 18 to 68 songs.
+[PASS] A1-jazz-coffee-shop: Scripted interpretation: jazz + relaxed + low energy. Replacement expectations for the 68-song catalog (the original 18-song expectation, top pick Coffee Shop Stories, is kept as an ungraded finding): the top pick is a jazz song, and the top 3 are all jazz with energy within 0.15 of the 0.35 target.
 [PASS] A2-club-edm: Scripted interpretation: EDM/pop, uplifting, very high energy. The only EDM + uplifting song should lead.
 [PASS] A3-metal: Scripted interpretation: metal, ominous, extreme energy and dark valence.
 [PASS] A4-classical-calm: Scripted interpretation: classical, dreamy, very low energy, highly acoustic.
@@ -93,7 +94,7 @@ Scope: this checks my code's behavior. It does not measure how well real Gemini 
 [PASS] G9-injection-with-manual: An injection attempt is rejected even when manual preferences are supplied (no bypass).
 
 == H. Feedback-driven ranking: 10/10 scenarios, 33/33 checks, 1 informational (not graded) ==
-[INFO] H1-finding-top3-not-guaranteed: FINDING (documented, not graded): the original expectation was top 3; observed rank 5 -> 4, score 1.78 -> 3.85. Feedback influences ranking without guaranteeing a specific position.
+[INFO] H1-finding-top3-not-guaranteed: FINDING (documented, not graded): the original expectation was top 3; observed rank 19 -> 7, score 1.78 -> 3.85. Feedback influences ranking without guaranteeing a specific position.
 [PASS] H1-like-new-genre: Liking a song from a genre the user did not choose raises its score and rank, says why, is deterministic, and matches the engine on the adjusted preferences.
 [PASS] H10-failure-keeps-work-new-request-resets: A failed request keeps the user's work; a new successful request resets feedback.
 [PASS] H2-dislike-top-pick: Disliking the top song removes it and the list is refilled.
@@ -145,9 +146,14 @@ Scope: this checks my code's behavior. It does not measure how well real Gemini 
 [PASS] K1-reproducible: Running the whole suite twice gives identical results.
 
 == Evaluation findings (documented, not graded) ==
+A1-finding-original-top-pick: original expectation: Top pick is 'Coffee Shop Stories' (written for the 18-song catalog, where it was the only song that was both jazz and relaxed).
+  observed: top pick Take Five (score 3.98); top 5: Take Five, Coffee Shop Stories, Fly Me to the Moon, So What, What a Wonderful World; expectation NOT MET
+  history (18-song catalog): MET (see evals/results/history/18_song_baseline/)
+  The unified catalog also contains real jazz songs that are jazz and relaxed, so a different, equally valid jazz song can lead. The graded A1 scenario now checks the intended behavior (a jazz top pick; top 3 all jazz and near the energy target), written before the harness was re-run.
 H1-finding-top3-not-guaranteed: original expectation: After liking Coffee Shop Stories (jazz), it reaches the top 3 (written before the first run).
-  observed: rank 5 -> 4, score 1.78 -> 3.85; expectation NOT MET
-  songs that already matched the user's chosen genre and mood: Library Rain, Spacewalk Thoughts, Focus Flow, Midnight Coding
+  observed: rank 19 -> 7 among all catalog songs, score 1.78 -> 3.85; expectation NOT MET
+  songs that already matched the user's chosen genre and mood: Aruarian Dance, Monday Loop, Library Rain, Spacewalk Thoughts, Focus Flow, Midnight Coding, Music for Airports 1/1
+  history (18-song catalog): rank 5 -> 4, score 1.78 -> 3.85; NOT MET
   Feedback influences the ranking but does not guarantee a particular top-k position: other songs can still be stronger matches. Here the songs listed already matched the user's chosen genres and moods on every label, so one like could lift the liked song past some of them but not all.
 
 == Explanation-grounding confusion table ==
@@ -168,10 +174,10 @@ AI explanation is correct.
 evals/run_guardrails.py (reused; not added to the new-scenario totals): 43/43 scenarios passed (136 expectation entries)
 
 == Totals ==
-New scenarios: 114/114 passed (7 informational items not graded: grounding probes and findings)
-New checks: 647/647 passed. By basis: independent 219/219, specification 64/64, invariant 355/355, regression 9/9
+New scenarios: 114/114 passed (8 informational items not graded: grounding probes and findings)
+New checks: 649/649 passed. By basis: independent 221/221, specification 64/64, invariant 355/355, regression 9/9
 Reused guardrail scenarios: 43/43 passed
 Reproducible on rerun: True
 Metrics deliberately not reported: precision/recall/NDCG against human relevance, success rates, average score,
-diversity percentages, latency. With 18 songs, scripted Gemini and hand labels they would be misleading.
+diversity percentages, latency. With a 68-song catalog (50 songs with estimated ratings), scripted Gemini and hand labels they would be misleading.
 Overall: PASS
