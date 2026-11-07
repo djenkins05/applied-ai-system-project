@@ -1,10 +1,14 @@
-# 🎧 Model Card: Music Recommender Simulation
+# 🎧 Model Card: MoodMix AI
+
+> **MoodMix AI extends my Module 3 recommender.** Sections 1 to 9 describe the original Module 3 recommender (named MatchVibe 1.0 at the time) and are kept as written. Sections 10 to 16 add the Gemini-powered MoodMix AI features, their evaluation, risks and my AI collaboration reflection.
 
 ## 1. Model Name
 
-**MatchVibe 1.0**
+**MoodMix AI**
 
-A small music recommender that checks if a song's vibe matches what you asked for.
+MoodMix AI is the full system: a Gemini-powered interpretation step, a Streamlit app, guardrails and feedback, wrapped around my original Module 3 recommender, **MatchVibe 1.0**. MatchVibe 1.0 is still the component that ranks songs, and sections 2 to 9 below describe it.
+
+MatchVibe 1.0 is a small music recommender that checks if a song's vibe matches what you asked for.
 
 ---
 
@@ -236,3 +240,138 @@ I would add more songs first. The catalog has gaps in energy, and 13 of the 15 g
 - Test the modes with real listeners.
 - Limit how many songs from one genre or artist show up.
 - Catch bad input, like empty profiles and impossible energy targets.
+
+---
+
+# Part 2: MoodMix AI extension
+
+## 10. The integrated AI feature
+
+**What Gemini does.** Gemini reads a free-text description ("I'm studying for finals") and returns structured
+preferences: up to five genres and moods from the catalog, and target energy, valence and acousticness between 0 and 1. It
+can also write one short sentence per recommended song explaining the fit.
+
+**What Gemini does not do.** It never ranks or scores songs. The original recommender in `src/recommender.py`
+(unchanged) is the only component that ranks, and its scoring reasons are always shown next to any AI sentence.
+
+**How it is constrained.**
+- The request asks for JSON that matches a schema built from the catalog's own genres and moods, with temperature 0.
+- The user's text is sent inside delimiter tags and the prompt tells the model to treat it as data.
+- Gemini's answer is untrusted: `parse_preferences` keeps only genres and moods that exist in the catalog, clamps numbers
+  to 0 to 1, and rejects an answer with nothing usable. It does not fall back to defaults.
+- Explanations are checked against the engine's own facts (`src/explain.py`); an explanation that names another song or
+  artist, invents a year, album or score, or contains a link, markup or instructions is dropped and the engine's reasons
+  are shown instead.
+
+**Other behaviour added around it.**
+- A manual-only mode (no Gemini call) and an explicit, user-triggered manual fallback after a failure.
+- Like/dislike feedback in the Streamlit app. It adjusts the preferences passed to the engine and excludes disliked
+  songs for the session. It does not retrain Gemini and does not change the scoring rules.
+
+**Data.** The catalog is unchanged (18 songs, 15 genres, 14 moods). The user's text is sent to Google's Gemini API, and for
+explanations so are the facts of the recommended songs (title, artist, genre, mood, audio features, score, reasons).
+
+## 11. Guardrails and reliability
+
+- **Input screening** (`src/guardrails.py`): empty, over 500 characters, symbols-only and repeated-character input are
+  rejected before any API call, along with clear prompt-injection attempts (override instructions, reveal hidden prompts,
+  impersonate system or developer roles, bypass safeguards). The detector is deliberately narrow so requests like
+  "I need music to ignore distractions" still work; tests cover both malicious and legitimate wording.
+- **Failure handling** (`src/llm.py`, `src/pipeline.py`): timeouts and one bounded retry; HTTP 400, 401/403, 404, 429 and
+  5xx are classified separately with a sanitized diagnostic (status code and a redacted message, never keys or request text).
+- **Fallback:** if Gemini fails, the app shows a friendly error and offers manual preferences. It does not create
+  recommendations from defaults.
+- **Reliability log** (`src/reliability_log.py`): opt-in; records event type, error category, HTTP status, latency, input
+  length and guardrail category. It never records user text, hashes of it, or keys.
+- **Transparency:** the interface labels AI-generated content and shows the engine's reasons.
+
+## 12. Evaluation (what was actually run)
+
+| Evidence | Result |
+|---|---|
+| Automated tests (`python3 -m pytest`; Gemini always mocked, network blocked) | 501 passed, 3 xfailed (the 3 are known-bug tests from Module 3), run 2026-11-07 |
+| Comprehensive harness (`python evals/run_eval.py`, scripted or canned Gemini, no network) | 114/114 new scenarios and 647/647 checks passed across 9 categories (recommendation correctness, mock mood scenarios, invalid input, prompt structure, malformed responses, API failures, manual fallback, feedback, grounding); identical on rerun; saved in `evals/results/eval_report.txt` and `.json`. Plus one documented finding (below) |
+| Guardrail and reliability cases (`python evals/run_guardrails.py`, 43 fixed cases, simulated Gemini) | 43/43 passed; saved in `evals/results/guardrails.txt` and `.json`; identical across reruns |
+| One real Gemini run through the CLI (`gemini-3.5-flash-lite`) | succeeded; output in `docs/evidence/live_gemini_run_1.md` |
+| Errors observed with real Gemini before that run | HTTP 404 for `gemini-2.5-flash` (the API said it is no longer available to new users), then HTTP 504 and HTTP 503 for `gemini-3.8-flash`; causes of the 503/504 were not established |
+
+**A finding about feedback.** My first expectation for liking a jazz song (`H1-like-new-genre`) was that it would reach the top 3. It
+moved from #5 (score 1.78) to #4 (score 3.85): four songs already matched both of the user's chosen genres and moods and scored
+3.84 to 3.94, so one like could not overtake all of them. The first run reported this as a failure (113/114 scenarios). After review
+I replaced the scenario with checks of the intended behavior (the liked song's score and rank improve, the result is deterministic,
+and the ranking equals the original engine on the adjusted preferences) and kept the original top-3 expectation in the report as a
+documented finding with its observed numbers. I did not hard-code rank #4, and I did not change the recommendation algorithm. The
+lesson for users is that feedback influences rankings but does not guarantee a specific top-k position, because other songs may still
+be stronger matches. This is a property of the tiny catalog and the feedback rules, not something I tuned away.
+
+**Explanation grounding, honestly.** On 25 sentences labelled independently of the validator (within its documented coverage:
+fabricated metadata, unsafe text and faithful sentences), it rejected all 19 bad ones and accepted all 6 faithful ones. On 6
+probes outside that coverage (plausible false wording, vague claims, and metadata not in its list such as "the 90s" or "won
+awards") it accepted all 6. The checks catch fabricated metadata, not general untruth, and they do not guarantee that an
+explanation is correct. The labelled set is small and constructed, so these counts are a regression check, not an accuracy estimate.
+
+**Metrics I chose not to report.** Precision, recall or NDCG against human relevance, success rates, average scores, diversity
+percentages and latency would be misleading here: 18 songs (13 of 15 genres with one song), many score ties, scripted Gemini and
+hand-written labels. Reproduction commands: `docs/evidence/reproduce.md`.
+
+**What was not measured.** There is no measurement of how accurately Gemini interprets real inputs, no user study, and no
+baseline-versus-AI comparison. The guardrail cases use a simulated Gemini, so they test my code paths, not the real
+model's behaviour on hostile input. The grounding checks are heuristics. The feedback constants (genre/mood weights, 0.30
+like step, 0.15 dislike step) were chosen by hand and not tuned with listeners. The Streamlit app has been tested with
+Streamlit's `AppTest` and a mocked Gemini, and a headless start-up check; I captured four screenshots of a real-Gemini session
+through the app (Offline demo AI off; `docs/evidence/screenshots/01` to `04`), but no recording or transcript.
+
+## 13. Limitations and risks specific to the AI feature
+
+- **Misreading and hallucination.** Gemini may map a mood to the wrong labels or energy level. Validation guarantees
+  the labels exist, not that they are right. The interpretation panel lets the user check and edit.
+- **Prompt injection.** Defenses are layered (narrow input screening, delimited prompt, schema-constrained output,
+  validation, explanation grounding), but none is complete. A reworded attack could pass screening and still produce only
+  catalog labels, which limits the damage.
+- **Bias in interpretation.** The model's idea of what "studying" or "heartbreak" sounds like reflects its training data and
+  may not fit every culture or language. The 18-song catalog (15 genres, mostly one song each) also limits what can be
+  recommended, and the Module 3 biases in section 5 still apply.
+- **Unverifiable explanations.** The checks catch concrete false claims (other songs, scores, years) but cannot prove a vague
+  sentence such as "perfect for rainy days".
+- **Dependence on a third party.** During development the default model was retired for new users and the replacement was
+  intermittently overloaded. The app depends on model availability, and model names change.
+- **Session-only feedback.** Feedback is not saved and is not learned from across sessions.
+
+## 14. Ethical considerations
+
+- **Privacy.** Text typed into the app is sent to Google's Gemini API. Do not enter sensitive personal information.
+  The app does not store text, and the reliability log excludes it.
+- **Transparency and over-trust.** AI-written content is labelled, scoring reasons are always visible, and the interface says
+  that feedback does not retrain the AI, so a user can see why a song was recommended.
+- **Misuse.** Injection attempts are rejected with a clear message rather than silently ignored.
+- **Fairness and scope.** This is not a music service. The tiny catalog cannot represent anyone's real taste, and a low score
+  means only "does not match the labels".
+
+## 15. AI collaboration reflection
+
+I used Claude Code throughout development to help plan, implement and test MoodMix AI. MoodMix AI itself is not an agentic
+application. I learned that AI suggestions still need careful review: some worked well, others had to change to fit my project.
+
+**A suggestion I accepted.** My first real Gemini command only reported `llm_error`. Claude found that HTTP 400, 404 and
+other errors fell through to one generic error class with no status code, and added separate error classes and a sanitized
+diagnostic. The next run showed `HTTP 404 NOT_FOUND`: the default model was no longer available to new users. I looked up the
+current model in Google AI Studio, chose `gemini-3.5-flash-lite`, and the real run worked. I trusted the fix because mocked
+tests covered the classification and my live run confirmed the cause.
+
+**A suggestion I rejected and had revised.** The Phase 3 plan logged a short hash of each request. I rejected that: reliability
+logs hold only operational metadata (event, status, latency, input length), with no prompt text and no hashes, and tests check
+this. I also narrowed the prompt-injection detector so ordinary requests such as "ignore distractions" still work.
+
+**Testing an assumption.** My feedback evaluation expected a liked song to reach the top three. The results showed that
+feedback raised its score and rank (#5 to #4) without guaranteeing a top-three position. Rather than change the recommendation
+algorithm to satisfy the test, I revised the evaluation to measure the intended behavior and kept the original failure as a
+documented finding (`H1-finding-top3-not-guaranteed`).
+
+**What I took from this.** Testing assumptions, protecting existing functionality, and treating AI as a development assistant
+rather than automatically correct. The full log is in `ai_interactions.md`. For my Module 3 notes on AI use, see section 9.
+
+## 16. Intended and non-intended use (MoodMix AI)
+
+- **Intended:** a classroom demonstration of combining an LLM interpretation step with a transparent rule-based
+  recommender, with guardrails, fallbacks and feedback, over a tiny catalog.
+- **Not intended for:** real music apps, any decision about people or artists, or handling sensitive text. Sections 7 and 13 apply.

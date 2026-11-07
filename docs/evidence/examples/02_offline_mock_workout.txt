@@ -1,0 +1,67 @@
+Label:    OFFLINE MOCK RUN (canned Gemini stand-in from src/mock_llm.py; not real Gemini)
+Command:  python3 -m src.moodmix_cli --mock "I need motivation to work out"
+Captured: 2026-11-07
+----------------------------------------------------------------
+[MOCK Gemini: canned answers, no API call]
+
+AI-generated interpretation of your request (please check it):
+  Your request:  I need motivation to work out
+  Genres:        EDM, pop, metal
+  Moods:         uplifting, intense
+  Energy:        0.95
+  Valence:       0.80
+  Acousticness:  0.05
+  Ranking mode:  balanced   (model: mock)
+
+================================================================
+ Top 5 recommendations
+================================================================
+
+1. Gym Hero  by Max Pulse
+   Score: 3.96 / 4.00
+   AI says: This intense pop pick suits what you described.
+   Engine reasons:
+     - genre match: pop (+1.0)
+     - mood match: intense (+1.0)
+     - energy 0.93 vs target 0.95 (+0.98)
+     - valence 0.77 vs target 0.80 (+0.48)
+     - acousticness 0.05 vs target 0.05 (+0.50)
+
+2. Levels  by Avicii
+   Score: 3.92 / 4.00
+   AI says: This uplifting EDM pick suits what you described.
+   Engine reasons:
+     - genre match: EDM (+1.0)
+     - mood match: uplifting (+1.0)
+     - energy 0.95 vs target 0.95 (+1.00)
+     - valence 0.94 vs target 0.80 (+0.43)
+     - acousticness 0.02 vs target 0.05 (+0.48)
+
+3. Sunrise City  by Neon Echo
+   Score: 2.79 / 4.00
+   AI says: This happy pop pick suits what you described.
+   Engine reasons:
+     - genre match: pop (+1.0)
+     - energy 0.82 vs target 0.95 (+0.87)
+     - valence 0.84 vs target 0.80 (+0.48)
+     - acousticness 0.18 vs target 0.05 (+0.43)
+
+4. Storm Runner  by Voltline
+   Score: 2.77 / 4.00
+   AI says: This intense rock pick suits what you described.
+   Engine reasons:
+     - mood match: intense (+1.0)
+     - energy 0.91 vs target 0.95 (+0.96)
+     - valence 0.48 vs target 0.80 (+0.34)
+     - acousticness 0.10 vs target 0.05 (+0.47)
+
+5. Enter Sandman  by Metallica
+   Score: 2.67 / 4.00
+   AI says: This ominous metal pick suits what you described.
+   Engine reasons:
+     - genre match: metal (+1.0)
+     - energy 0.97 vs target 0.95 (+0.98)
+     - valence 0.22 vs target 0.80 (+0.21)
+     - acousticness 0.01 vs target 0.05 (+0.48)
+----------------------------------------------------------------
+exit code: 0

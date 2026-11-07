@@ -1,4 +1,507 @@
-# 🎵 Music Recommender Simulation
+# 🎵 MoodMix AI
+
+MoodMix AI turns a free-text description of your mood or situation ("rainy Sunday, need to focus") into music
+recommendations. It extends my Module 3 **Music Recommender Simulation** with a Gemini-powered interpretation step, a
+Streamlit app with like/dislike feedback, input and output guardrails, and a manual-preference fallback.
+
+**Who does what**
+
+| Component | Job | Not its job |
+|---|---|---|
+| **Gemini (AI)** | Interprets your text into structured preferences; optionally writes one short explanation per recommended song | Ranking or scoring songs |
+| **Original Module 3 recommender** (`src/recommender.py`, unchanged) | Scores and ranks every song, and produces the scoring reasons | Understanding free text |
+| **Guardrails and validators** | Screen your text; check Gemini's output against the catalog; drop explanations that are not grounded in the data | |
+
+Parts of the interface are AI-generated and are labelled as such. The engine's scoring reasons are always shown.
+
+## Original project (Module 3)
+
+MoodMix AI extends the **Music Recommender Simulation** from Module 3: a content-based, CLI-first recommender over an
+18-song catalog with five ranking strategies and 35 tests. That project is preserved in full, unchanged, in
+[Original Project: Music Recommender Simulation (Module 3)](#original-project-music-recommender-simulation-module-3)
+below, and `python src/main.py` still runs it.
+
+## Quick start
+
+Developed and tested on Python 3.12.
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env            # then put your key after GEMINI_API_KEY= (never commit .env)
+```
+
+| Environment variable | Purpose | Default |
+|---|---|---|
+| `GEMINI_API_KEY` | Required only for real Gemini calls (key from Google AI Studio) | none |
+| `GEMINI_MODEL` | Override the Gemini model ID | `gemini-3.5-flash-lite` |
+| `GEMINI_TIMEOUT_S` | Request timeout in seconds (1 to 300) | `45` |
+| `MOODMIX_LOG_FILE` | Opt-in path for the reliability log (no user text, no keys) | off |
+
+Variables already set in your shell take priority over `.env`.
+
+```bash
+streamlit run app.py                                                  # the app
+python3 -m src.moodmix_cli "I'm studying for finals"                  # real Gemini (needs a key)
+python3 -m src.moodmix_cli --mock "I need motivation to work out"     # offline mock, no key
+python3 -m src.moodmix_cli --genre lofi --mood chill --energy 0.3     # manual only, no key
+python src/main.py --strategy all                                     # the original Module 3 CLI
+python3 -m pytest                                                     # tests (Gemini is always mocked)
+python evals/run_guardrails.py                                        # guardrail demonstration
+```
+
+## Architecture
+
+Source: [diagrams/architecture.mmd](diagrams/architecture.mmd) (the same text is embedded below). A rendered image of the
+diagram, captured by the author, is saved as [docs/evidence/screenshots/10_architecture_rendered.png](docs/evidence/screenshots/10_architecture_rendered.png).
+
+```mermaid
+%% MoodMix AI architecture. Matches the implemented code (see README "Architecture").
+%% Orange = Gemini (interprets text, optionally writes explanations). Green = original Module 3 engine (the only thing that ranks).
+flowchart TD
+  subgraph UI["Streamlit UI (app.py, session_state only)"]
+    U1["Describe mood or situation (text)"]
+    U1b["Manual preferences (genres and moods from the CSV)"]
+    U2["Edit preferences, ranking mode, song count"]
+    U3["Like / Dislike / Undo / Reset feedback"]
+    U4["Results: score out of 4.00, engine reasons, labelled AI text, feedback notes"]
+  end
+
+  subgraph CTRL["src/app_controller.py + src/feedback.py (no Streamlit code)"]
+    C1["AppState: base preferences, votes, current results"]
+    C2["adjust_preferences: likes add labels and nudge targets, dislikes exclude songs"]
+  end
+
+  subgraph AI["AI layer (Gemini output is untrusted)"]
+    G1["guardrails.screen_input: empty, oversized, symbols-only, prompt injection"]
+    L1["llm.interpret_preferences: JSON schema, timeout, one retry"]
+    L2["llm.request_explanations: one sentence per recommended song"]
+  end
+
+  subgraph VAL["Validation"]
+    P1["preferences.parse_preferences: catalog labels only, clamp to 0-1, warnings"]
+    X1["explain.validate_explanations + guardrails.screen_ai_text"]
+  end
+
+  subgraph ORIG["Original Module 3 recommender (unchanged, only component that ranks)"]
+    E1["recommender.recommend_songs / score_song, 5 ranking strategies"]
+  end
+
+  D[("data/songs.csv, 18 songs")]
+  F1["Friendly error + sanitized diagnostic (fallback_available)"]
+  M1["fallback.manual_to_preferences: same validation as Gemini output"]
+  LOG["reliability_log: event, status, latency, lengths only (no user text, no keys)"]
+  T["tests/ (Gemini always mocked) + evals/run_guardrails.py to evals/results/"]
+
+  U1 --> G1
+  G1 -->|"rejected"| F1
+  G1 -->|"accepted"| L1
+  L1 -->|"error, timeout, bad JSON"| F1
+  L1 --> P1
+  P1 -->|"nothing usable"| F1
+  P1 -->|"validated preferences"| C1
+
+  F1 -->|"user clicks Use manual preferences (never automatic)"| U1b
+  U1b -->|"manual-only mode: no Gemini call"| M1
+  M1 --> C1
+
+  U2 --> C1
+  U3 --> C2
+  C1 --> C2
+  C2 -->|"adjusted preferences, disliked songs removed"| E1
+  D --> E1
+  E1 -->|"ranked songs, scores, reasons"| U4
+  E1 -->|"facts about the top picks"| L2
+  L2 --> X1
+  X1 -->|"trusted sentences only, otherwise engine reasons"| U4
+
+  G1 -.-> LOG
+  L1 -.-> LOG
+  F1 -.-> LOG
+  T -.-> G1
+  T -.-> E1
+
+  classDef ai fill:#fde7c8,stroke:#c77700,color:#000
+  classDef orig fill:#d6f0d6,stroke:#2e7d32,color:#000
+  class L1,L2 ai
+  class E1,D orig
+```
+
+Reading the diagram: Gemini (orange) only interprets text and writes optional explanations. The original recommender
+(green) is the only component that ranks songs. Every Gemini output passes through validation before it is used.
+Manual-only mode skips Gemini entirely, and the manual fallback after a failure is a button the user presses, never automatic.
+Likes and dislikes change the preferences passed to the engine; they do not retrain Gemini or alter the scoring rules.
+
+## Sample end-to-end examples
+
+Each example is genuine captured output. Examples 2 and 3 are re-run offline from the exact command shown, and the
+full captures (including exit codes) are in `docs/evidence/examples/`.
+
+### Example 1: REAL GEMINI RUN (CLI, model `gemini-3.5-flash-lite`)
+
+```bash
+GEMINI_MODEL=gemini-3.5-flash-lite python3 -m src.moodmix_cli "I'm studying for finals"
+```
+
+Output captured from one real run (Gemini's wording and scores can differ between runs); also in
+[docs/evidence/live_gemini_run_1.md](docs/evidence/live_gemini_run_1.md):
+
+```text
+AI-generated interpretation of your request (please check it):
+  Your request:  I'm studying for finals
+  Genres:        none
+  Moods:         focused, chill
+  Energy:        0.25
+  Valence:       not set (skipped)
+  Acousticness:  not set (skipped)
+  Ranking mode:  balanced   (model: gemini-3.5-flash-lite)
+
+================================================================
+ Top 5 recommendations
+================================================================
+
+1. Spacewalk Thoughts  by Orbit Bloom
+   Score: 2.63 / 4.00
+   AI says: This chill ambient track provides a calm atmosphere.
+   Engine reasons:
+     - mood match: chill (+1.33)
+     - energy 0.28 vs target 0.25 (+1.29)
+
+2. Library Rain  by Paper Lanterns
+   Score: 2.53 / 4.00
+   AI says: It features a chill lofi style to help you relax.
+   Engine reasons:
+     - mood match: chill (+1.33)
+     - energy 0.35 vs target 0.25 (+1.20)
+
+3. Focus Flow  by LoRoom
+   Score: 2.47 / 4.00
+   AI says: This focused lofi song is designed to keep you on track.
+   Engine reasons:
+     - mood match: focused (+1.33)
+     - energy 0.40 vs target 0.25 (+1.13)
+
+4. Midnight Coding  by LoRoom
+   Score: 2.44 / 4.00
+   AI says: A chill lofi tune that brings a relaxed vibe.
+   Engine reasons:
+     - mood match: chill (+1.33)
+     - energy 0.42 vs target 0.25 (+1.11)
+
+5. Clair de Lune  by Claude Debussy
+   Score: 1.19 / 4.00
+   AI says: This classical piece creates a dreamy environment.
+   Engine reasons:
+     - energy 0.14 vs target 0.25 (+1.19)
+```
+
+### Example 2: OFFLINE MOCK RUN (canned stand-in for Gemini, not real Gemini)
+
+```bash
+python3 -m src.moodmix_cli --mock "I need motivation to work out"
+```
+
+```text
+[MOCK Gemini: canned answers, no API call]
+
+AI-generated interpretation of your request (please check it):
+  Your request:  I need motivation to work out
+  Genres:        EDM, pop, metal
+  Moods:         uplifting, intense
+  Energy:        0.95
+  Valence:       0.80
+  Acousticness:  0.05
+  Ranking mode:  balanced   (model: mock)
+
+================================================================
+ Top 5 recommendations
+================================================================
+
+1. Gym Hero  by Max Pulse
+   Score: 3.96 / 4.00
+   AI says: This intense pop pick suits what you described.
+   Engine reasons:
+     - genre match: pop (+1.0)
+     - mood match: intense (+1.0)
+     - energy 0.93 vs target 0.95 (+0.98)
+     - valence 0.77 vs target 0.80 (+0.48)
+     - acousticness 0.05 vs target 0.05 (+0.50)
+
+2. Levels  by Avicii
+   Score: 3.92 / 4.00
+   AI says: This uplifting EDM pick suits what you described.
+   Engine reasons:
+     - genre match: EDM (+1.0)
+     - mood match: uplifting (+1.0)
+     - energy 0.95 vs target 0.95 (+1.00)
+     - valence 0.94 vs target 0.80 (+0.43)
+     - acousticness 0.02 vs target 0.05 (+0.48)
+
+3. Sunrise City  by Neon Echo
+   Score: 2.79 / 4.00
+   AI says: This happy pop pick suits what you described.
+   Engine reasons:
+     - genre match: pop (+1.0)
+     - energy 0.82 vs target 0.95 (+0.87)
+     - valence 0.84 vs target 0.80 (+0.48)
+     - acousticness 0.18 vs target 0.05 (+0.43)
+
+4. Storm Runner  by Voltline
+   Score: 2.77 / 4.00
+   AI says: This intense rock pick suits what you described.
+   Engine reasons:
+     - mood match: intense (+1.0)
+     - energy 0.91 vs target 0.95 (+0.96)
+     - valence 0.48 vs target 0.80 (+0.34)
+     - acousticness 0.10 vs target 0.05 (+0.47)
+
+5. Enter Sandman  by Metallica
+   Score: 2.67 / 4.00
+   AI says: This ominous metal pick suits what you described.
+   Engine reasons:
+     - genre match: metal (+1.0)
+     - energy 0.97 vs target 0.95 (+0.98)
+     - valence 0.22 vs target 0.80 (+0.21)
+     - acousticness 0.01 vs target 0.05 (+0.48)
+```
+
+Full capture: `docs/evidence/examples/02_offline_mock_workout.txt`.
+
+### Example 3: MANUAL-ONLY RUN (no Gemini call, no API key)
+
+```bash
+python3 -m src.moodmix_cli --genre lofi --mood chill --energy 0.3
+```
+
+```text
+Manual preferences (not AI-interpreted):
+  Genres:        lofi
+  Moods:         chill
+  Energy:        0.30
+  Valence:       not set (skipped)
+  Acousticness:  not set (skipped)
+  Ranking mode:  balanced
+
+================================================================
+ Top 5 recommendations
+================================================================
+
+1. Library Rain  by Paper Lanterns
+   Score: 3.93 / 4.00
+   Engine reasons:
+     - genre match: lofi (+1.33)
+     - mood match: chill (+1.33)
+     - energy 0.35 vs target 0.30 (+1.27)
+
+2. Midnight Coding  by LoRoom
+   Score: 3.84 / 4.00
+   Engine reasons:
+     - genre match: lofi (+1.33)
+     - mood match: chill (+1.33)
+     - energy 0.42 vs target 0.30 (+1.17)
+
+3. Spacewalk Thoughts  by Orbit Bloom
+   Score: 2.64 / 4.00
+   Engine reasons:
+     - mood match: chill (+1.33)
+     - energy 0.28 vs target 0.30 (+1.31)
+
+4. Focus Flow  by LoRoom
+   Score: 2.53 / 4.00
+   Engine reasons:
+     - genre match: lofi (+1.33)
+     - energy 0.40 vs target 0.30 (+1.20)
+
+5. Coffee Shop Stories  by Slow Stereo
+   Score: 1.24 / 4.00
+   Engine reasons:
+     - energy 0.37 vs target 0.30 (+1.24)
+
+Note: Manual mode: showing the engine's scoring reasons (no AI explanations).
+```
+
+Full capture: `docs/evidence/examples/03_manual_only_lofi_chill.txt`.
+
+Guardrail and fallback behaviour (prompt injection rejected, HTTP 503 to manual fallback, hostile AI text dropped, and
+more) is shown in `evals/results/guardrails.txt`; those cases use a simulated Gemini.
+
+## Testing and evidence
+
+| What | Command | Result when last run (2026-11-07) |
+|---|---|---|
+| Full test suite (Gemini always mocked, network blocked) | `python3 -m pytest` | 501 passed, 3 xfailed (the 3 are the known-bug tests in the Module 3 suite) |
+| Comprehensive evaluation harness, scripted/mock Gemini | `python evals/run_eval.py` | 114/114 new scenarios and 647/647 checks passed (plus 1 documented finding, below); saved to `evals/results/eval_report.txt` and `.json`; identical on rerun |
+| Guardrail and reliability cases, simulated Gemini (reused by the harness) | `python evals/run_guardrails.py` | 43/43 passed; saved to `evals/results/guardrails.txt` and `.json` |
+| Streamlit UI | included in the suite (`tests/test_app_ui.py`, Streamlit `AppTest`) | passes with a mocked Gemini |
+| Real Gemini | `python3 -m src.moodmix_cli "I'm studying for finals"` | one successful live run captured (Example 1) |
+
+### Evaluation harness (Phase 6)
+
+`python evals/run_eval.py` runs predefined scenarios offline through the real code and checks behavior, not just that nothing
+crashes. Scenarios and checks are counted separately; the 43 guardrail cases are reused and reported separately, not added
+to the new totals.
+
+| Category | Scenarios passed | Checks passed |
+|---|---|---|
+| A. Recommendation correctness (scripted interpretations) | 6/6 | 58/58 |
+| B. Moods and activities (canned mock scenarios) | 6/6 | 53/53 |
+| C. Invalid input | 13/13 | 78/78 |
+| D. Prompt structure and injection resistance | 6/6 | 40/40 |
+| E. Missing or malformed Gemini responses | 20/20 | 172/172 |
+| F. API failures, retry policy, secret hygiene | 14/14 | 74/74 |
+| G. Manual fallback | 10/10 | 87/87 |
+| H. Feedback-driven ranking (+ 1 documented finding) | 10/10 | 33/33 |
+| I. Explanation grounding (+ 6 ungraded probes) | 28/28 | 51/51 |
+| K. Determinism | 1/1 | 1/1 |
+| **New total** | **114/114** | **647/647** |
+| Reused guardrail suite (`evals/run_guardrails.py`) | 43/43 | 136 expectation entries |
+
+Checks by basis: independent 219/219, specification 64/64, invariant 355/355, regression 9/9. "Independent" expectations were
+written from catalog attributes and the documented design before any output was inspected; "regression" checks compare the
+system with existing code and can only detect change.
+
+**Finding: feedback does not guarantee a top-k position.** The first version of scenario `H1-like-new-genre` expected that liking
+*Coffee Shop Stories* (jazz) would lift it into the top 3 (written before the first run). It did not: the song rose from #5
+(score 1.78) to #4 (score 3.85) and no further, because four catalog songs (Library Rain, Spacewalk Thoughts, Focus Flow,
+Midnight Coding) already matched the user's chosen genres and moods on every label and scored 3.84 to 3.94. The first harness
+run therefore reported 113/114 scenarios and exit code 1. After review, the scenario was changed to test the *intended* behavior
+(the liked song's score and rank improve, feedback notes explain the change, the result is deterministic, and the ranking equals
+the original engine run on the adjusted preferences) and the original top-3 expectation was kept as an ungraded, documented
+finding in the report (`H1-finding-top3-not-guaranteed`, status NOT MET). No rank was hard-coded as the new threshold, and the
+recommendation algorithm was not changed. Feedback influences rankings but cannot promise a position, since other songs may
+still be stronger matches. Any future failing scenario fails the harness and `tests/test_run_eval.py`.
+
+**Grounding of explanations.** On 25 independently labelled sentences within the checks' documented coverage (fabricated
+metadata such as other songs or artists, years, albums, false scores, wrong energy or tempo, plus links, markup and
+injection phrases, plus faithful sentences) the confusion table is TP 19, FN 0, TN 6, FP 0. On 6 probes outside that coverage
+(false but plausible wording like "a thrashing, aggressive anthem" for a calm song, vague claims, and metadata the checks do
+not list such as "the 90s" or "won several awards") all 6 were accepted. So the validator detects fabricated metadata; it does
+**not** judge whether an explanation is generally true, and passing does not mean every AI explanation is correct.
+
+**What is not reported, and why.** No precision/recall/NDCG, success rate, average score, diversity or latency numbers: with
+18 songs (13 of 15 genres have one song), scripted Gemini and hand labels they would be misleading. These results say
+nothing about how well real Gemini interprets text. Exact commands to reproduce everything:
+[docs/evidence/reproduce.md](docs/evidence/reproduce.md).
+
+Real-Gemini evidence through the Streamlit app: the four [Screenshots](#screenshots) below, captured with Offline demo AI off
+(author-confirmed). Remaining screenshots are listed in
+[docs/evidence/phase4_ui_walkthrough.md](docs/evidence/phase4_ui_walkthrough.md). Rubric mapping:
+[docs/rubric_coverage.md](docs/rubric_coverage.md).
+
+## Features in detail
+
+### Live Gemini test (verified)
+
+MoodMix AI sends free-text input to Gemini, which returns structured preferences that the existing
+recommender scores. Setup: copy `.env.example` to `.env` and set `GEMINI_API_KEY` (never commit `.env`).
+The default model is `gemini-3.5-flash-lite`; set `GEMINI_MODEL` to override it.
+
+```bash
+python3 -m src.moodmix_cli "I'm studying for finals"
+```
+
+One real run with this command (model `gemini-3.5-flash-lite`, `balanced` mode) interpreted the request as
+moods focused and chill with energy 0.25, then ranked Spacewalk Thoughts (2.63 / 4.00), Library Rain (2.53),
+Focus Flow (2.47), Midnight Coding (2.44) and Clair de Lune (1.19). The full captured output, including the
+engine's scoring reasons and Gemini's one-line explanations, is in
+[docs/evidence/live_gemini_run_1.md](docs/evidence/live_gemini_run_1.md). Gemini's wording and scores can
+differ between runs; this documents a single run.
+
+Before this run, earlier attempts with other model IDs returned errors, observed and not further investigated:
+HTTP 404 for `gemini-2.5-flash` (the API said the model is no longer available to new users), then HTTP 504
+(deadline expired) and HTTP 503 (high demand) for `gemini-3.8-flash`. The CLI prints the HTTP status and a
+sanitized message for such failures. Offline demo without an API key: `python3 -m src.moodmix_cli --mock "I need motivation to work out"`.
+
+### Reliability, guardrails and manual fallback (Phase 3)
+
+- **Input guardrails** (`src/guardrails.py`): empty, oversized (over 500 characters), symbols-only and
+  repeated-character input, and clear prompt-injection attempts (override instructions, reveal hidden
+  prompts, impersonate system/developer roles, bypass safeguards) are rejected before any Gemini call.
+  The injection check is deliberately narrow: requests such as "I need music to ignore distractions" or
+  "Forget my previous music preferences" are accepted (covered by tests).
+- **Output validation:** Gemini's preferences are validated against the catalog (unknown genres/moods
+  dropped, numbers clamped) and shown as plain-language notes; AI explanations containing links, markup,
+  instructions or invented details are dropped and the engine's scoring reasons are shown instead.
+- **Manual fallback** (`src/fallback.py`): if Gemini fails, the request can still be answered from
+  preferences you enter yourself. It is explicit: with no usable manual preferences, you get a friendly
+  error (`fallback_available=True`) and no recommendations built from defaults.
+- **Reliability log** (`src/reliability_log.py`): off by default. `--log-file logs/reliability.jsonl`
+  (or `MOODMIX_LOG_FILE`) records event type, error category, HTTP status, latency, input length,
+  guardrail category and whether the fallback was used. It never records user text, hashes of it, or keys.
+
+```bash
+python3 -m src.moodmix_cli --genre lofi --mood chill --energy 0.3        # manual only: no API call, no key
+python3 -m src.moodmix_cli "studying" --genre lofi --energy 0.3          # Gemini, manual fallback if it fails
+python3 -m src.moodmix_cli "studying" --log-file logs/reliability.jsonl  # opt-in reliability log
+python evals/run_guardrails.py                                           # guardrail demonstration
+```
+
+`evals/run_guardrails.py` runs 43 fixed cases with a simulated Gemini (no network, key or `.env`) and writes
+`evals/results/guardrails.txt` and `.json` (no timestamps; two consecutive runs produced identical files).
+Last run: 43/43 passed. These cases test the code paths with scripted responses; they say nothing about how
+the real model behaves on the same inputs.
+
+### Streamlit app and feedback (Phase 4)
+
+```bash
+streamlit run app.py
+```
+
+- **Two ways to choose:** describe your mood in words (Gemini interprets it) or enter manual preferences.
+  Manual genre/mood controls are filled from `data/songs.csv`. A sidebar selector offers all five ranking modes.
+- **Transparency:** the interpretation panel is labelled AI-generated and lets you edit every inferred value
+  (results update instantly, with no AI call). Every song shows its score out of 4.00 and the rule-based engine's
+  scoring reasons; Gemini's one-line explanations are labelled and appear only when they pass the grounding checks.
+- **Like / dislike:** votes adjust the preferences passed to the rule-based recommender and do **not** retrain Gemini.
+  A like adds that song's genre/mood and nudges energy toward it; a dislike nudges energy away and excludes the song for
+  the session (with Undo; "Reset feedback" restores every song at once). The "What your feedback changed" panel lists
+  each adjustment. Rules are in `src/feedback.py`; the unchanged engine still does all scoring.
+- **API use:** only "Find music" and the explicit "Ask Gemini to explain these picks" button contact Gemini. Voting,
+  editing preferences, changing the ranking mode or song count never do (covered by tests).
+- **Failures:** errors show a friendly message with a sanitized technical detail; the manual fallback is a button you
+  press, never automatic. A failed request keeps your text, edits, results and feedback. A new successful text request
+  resets feedback. An "offline demo AI" checkbox uses canned answers (clearly labelled) when Gemini is unavailable.
+
+**Interface design (redesign after Phase 4, presentation only):** a dark navy theme with purple and pink accents
+(`.streamlit/config.toml`, plus a small amount of CSS in `src/ui_theme.py`). Each recommendation is a card with a decorative
+genre icon (illustrative, not album art), title, artist, genre and mood, a score bar with the number as text, and Like/Dislike
+buttons. The engine's reasons and Gemini's explanation appear in separate, labelled blocks. The interpretation shows as
+preference chips with an editable expander, and feedback has a summary panel. Launch with `streamlit run app.py` from the
+repository root; tick **Offline demo AI** in the sidebar to try it without a key. Recommendation logic, feedback rules and
+Gemini calls are unchanged. The redesign has automated tests and has been visually reviewed by the author; four screenshots of it are in the
+[Screenshots](#screenshots) section.
+
+### Screenshots
+
+Four unedited screenshots of the redesigned Streamlit app (`streamlit run app.py`, desktop width), taken by the author, who has visually reviewed the running app. **They are real Gemini session evidence: the author confirms Offline demo AI was off and the real Gemini integration was used** (the sidebar shows the model name `gemini-3.5-flash-lite`). They are separate from the offline mock runs and the scripted-Gemini evaluation harness, which never call real Gemini.
+Files are in [docs/evidence/screenshots/](docs/evidence/screenshots/).
+
+| Screenshot | Shows |
+|---|---|
+| ![Home page](docs/evidence/screenshots/01_homepage.png) | **Home page:** header and tagline, sidebar (mode, ranking mode, songs to show, settings), text input with three example requests, Find music, and the "How it works" card |
+| ![Editing preferences](docs/evidence/screenshots/02_edit_preferences.png) | **Interpretation and editing:** "How I read your request" with the AI-generated badge, preference chips, and the editable preference controls |
+| ![Recommendation cards](docs/evidence/screenshots/03_recommendation_cards.png) | **Recommendation cards:** title, artist, genre and mood, score bar with "x.xx / 4.00", Like/Dislike buttons, the rule-based engine reasons block and the separate AI explanation block |
+| ![Feedback notes](docs/evidence/screenshots/04_feedback_notes.png) | **Feedback:** the "Removed for you" list with Undo and "What your feedback changed" (Liked/Disliked/Excluded counts, adjustment notes, picks without feedback) |
+
+Tests: `tests/test_feedback.py`, `tests/test_app_controller.py` and `tests/test_app_ui.py` (Streamlit `AppTest`) use mocked
+Gemini only. The script for a short walkthrough is in [docs/evidence/phase4_ui_walkthrough.md](docs/evidence/phase4_ui_walkthrough.md).
+
+## Limitations and responsible use
+
+- Tiny catalog (18 songs, 15 genres), label-based matching, no listening history. This is a class project, not a music service.
+- Gemini can misread a mood or reflect bias in how it interprets language. Its output is validated, but a plausible
+  misreading is not detectable. The interpretation panel exists so you can check and edit it.
+- Prompt-injection screening is deliberately narrow and is one layer among several; it will not catch everything.
+- The guardrail results come from a simulated Gemini, so they test the code paths, not the real model.
+
+See [model_card.md](model_card.md) for the full discussion.
+
+---
+
+# Original Project: Music Recommender Simulation (Module 3)
+
+The sections below are the original Module 3 documentation, kept as written (only the template placeholder in the
+project summary was replaced with a description of what the project does).
 
 ## Project Summary
 
@@ -11,7 +514,7 @@ Your goal is to:
 - Evaluate what your system gets right and wrong
 - Reflect on how this mirrors real world AI recommenders
 
-Replace this paragraph with your own summary of what your version does.
+**What my Module 3 version does:** a content-based, CLI-first music recommender. It loads an 18-song catalog (`data/songs.csv`: 15 genres, 14 moods), scores every song out of 4.0 against a taste profile (genre match, mood match, and closeness of energy, valence and acousticness), and prints the top 5 with the reason for each score. It has five ranking modes (`balanced` default, `classic`, `genre_first`, `mood_first`, `energy_focused`), a command-line runner with normal and adversarial test profiles, and 35 pytest tests (32 pass, 3 are marked `xfail` because they document known bugs). It has no listening history, no web UI and no AI model.
 
 ---
 
@@ -92,6 +595,7 @@ score = 1.0 * genre_match + 1.0 * mood_match
    python -m venv .venv
    source .venv/bin/activate      # Mac or Linux
    .venv\Scripts\activate         # Windows
+   ```
 
 2. Install dependencies
 

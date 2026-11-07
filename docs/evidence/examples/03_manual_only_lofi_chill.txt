@@ -1,0 +1,50 @@
+Label:    MANUAL-ONLY RUN (no Gemini call, no API key needed)
+Command:  python3 -m src.moodmix_cli --genre lofi --mood chill --energy 0.3
+Captured: 2026-11-07
+----------------------------------------------------------------
+Manual preferences (not AI-interpreted):
+  Genres:        lofi
+  Moods:         chill
+  Energy:        0.30
+  Valence:       not set (skipped)
+  Acousticness:  not set (skipped)
+  Ranking mode:  balanced
+
+================================================================
+ Top 5 recommendations
+================================================================
+
+1. Library Rain  by Paper Lanterns
+   Score: 3.93 / 4.00
+   Engine reasons:
+     - genre match: lofi (+1.33)
+     - mood match: chill (+1.33)
+     - energy 0.35 vs target 0.30 (+1.27)
+
+2. Midnight Coding  by LoRoom
+   Score: 3.84 / 4.00
+   Engine reasons:
+     - genre match: lofi (+1.33)
+     - mood match: chill (+1.33)
+     - energy 0.42 vs target 0.30 (+1.17)
+
+3. Spacewalk Thoughts  by Orbit Bloom
+   Score: 2.64 / 4.00
+   Engine reasons:
+     - mood match: chill (+1.33)
+     - energy 0.28 vs target 0.30 (+1.31)
+
+4. Focus Flow  by LoRoom
+   Score: 2.53 / 4.00
+   Engine reasons:
+     - genre match: lofi (+1.33)
+     - energy 0.40 vs target 0.30 (+1.20)
+
+5. Coffee Shop Stories  by Slow Stereo
+   Score: 1.24 / 4.00
+   Engine reasons:
+     - energy 0.37 vs target 0.30 (+1.24)
+
+Note: Manual mode: showing the engine's scoring reasons (no AI explanations).
+----------------------------------------------------------------
+exit code: 0

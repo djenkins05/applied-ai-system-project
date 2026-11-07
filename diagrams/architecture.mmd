@@ -1,0 +1,69 @@
+%% MoodMix AI architecture. Matches the implemented code (see README "Architecture").
+%% Orange = Gemini (interprets text, optionally writes explanations). Green = original Module 3 engine (the only thing that ranks).
+flowchart TD
+  subgraph UI["Streamlit UI (app.py, session_state only)"]
+    U1["Describe mood or situation (text)"]
+    U1b["Manual preferences (genres and moods from the CSV)"]
+    U2["Edit preferences, ranking mode, song count"]
+    U3["Like / Dislike / Undo / Reset feedback"]
+    U4["Results: score out of 4.00, engine reasons, labelled AI text, feedback notes"]
+  end
+
+  subgraph CTRL["src/app_controller.py + src/feedback.py (no Streamlit code)"]
+    C1["AppState: base preferences, votes, current results"]
+    C2["adjust_preferences: likes add labels and nudge targets, dislikes exclude songs"]
+  end
+
+  subgraph AI["AI layer (Gemini output is untrusted)"]
+    G1["guardrails.screen_input: empty, oversized, symbols-only, prompt injection"]
+    L1["llm.interpret_preferences: JSON schema, timeout, one retry"]
+    L2["llm.request_explanations: one sentence per recommended song"]
+  end
+
+  subgraph VAL["Validation"]
+    P1["preferences.parse_preferences: catalog labels only, clamp to 0-1, warnings"]
+    X1["explain.validate_explanations + guardrails.screen_ai_text"]
+  end
+
+  subgraph ORIG["Original Module 3 recommender (unchanged, only component that ranks)"]
+    E1["recommender.recommend_songs / score_song, 5 ranking strategies"]
+  end
+
+  D[("data/songs.csv, 18 songs")]
+  F1["Friendly error + sanitized diagnostic (fallback_available)"]
+  M1["fallback.manual_to_preferences: same validation as Gemini output"]
+  LOG["reliability_log: event, status, latency, lengths only (no user text, no keys)"]
+  T["tests/ (Gemini always mocked) + evals/run_guardrails.py to evals/results/"]
+
+  U1 --> G1
+  G1 -->|"rejected"| F1
+  G1 -->|"accepted"| L1
+  L1 -->|"error, timeout, bad JSON"| F1
+  L1 --> P1
+  P1 -->|"nothing usable"| F1
+  P1 -->|"validated preferences"| C1
+
+  F1 -->|"user clicks Use manual preferences (never automatic)"| U1b
+  U1b -->|"manual-only mode: no Gemini call"| M1
+  M1 --> C1
+
+  U2 --> C1
+  U3 --> C2
+  C1 --> C2
+  C2 -->|"adjusted preferences, disliked songs removed"| E1
+  D --> E1
+  E1 -->|"ranked songs, scores, reasons"| U4
+  E1 -->|"facts about the top picks"| L2
+  L2 --> X1
+  X1 -->|"trusted sentences only, otherwise engine reasons"| U4
+
+  G1 -.-> LOG
+  L1 -.-> LOG
+  F1 -.-> LOG
+  T -.-> G1
+  T -.-> E1
+
+  classDef ai fill:#fde7c8,stroke:#c77700,color:#000
+  classDef orig fill:#d6f0d6,stroke:#2e7d32,color:#000
+  class L1,L2 ai
+  class E1,D orig
