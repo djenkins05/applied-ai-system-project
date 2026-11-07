@@ -289,7 +289,7 @@ explanations so are the facts of the recommended songs (title, artist, genre, mo
 
 | Evidence | Result |
 |---|---|
-| Automated tests (`python3 -m pytest`; Gemini always mocked, network blocked) | 493 passed, 3 xfailed (the 3 are known-bug tests from Module 3), run 2026-11-07 |
+| Automated tests (`python3 -m pytest`; Gemini always mocked, network blocked) | 501 passed, 3 xfailed (the 3 are known-bug tests from Module 3), run 2026-11-07 |
 | Comprehensive harness (`python evals/run_eval.py`, scripted or canned Gemini, no network) | 114/114 new scenarios and 647/647 checks passed across 9 categories (recommendation correctness, mock mood scenarios, invalid input, prompt structure, malformed responses, API failures, manual fallback, feedback, grounding); identical on rerun; saved in `evals/results/eval_report.txt` and `.json`. Plus one documented finding (below) |
 | Guardrail and reliability cases (`python evals/run_guardrails.py`, 43 fixed cases, simulated Gemini) | 43/43 passed; saved in `evals/results/guardrails.txt` and `.json`; identical across reruns |
 | One real Gemini run through the CLI (`gemini-3.5-flash-lite`) | succeeded; output in `docs/evidence/live_gemini_run_1.md` |
