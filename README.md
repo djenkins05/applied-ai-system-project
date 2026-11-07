@@ -328,10 +328,59 @@ more) is shown in `evals/results/guardrails.txt`; those cases use a simulated Ge
 
 | What | Command | Result when last run (2026-11-07) |
 |---|---|---|
-| Full test suite (Gemini always mocked, network blocked) | `python3 -m pytest` | 474 passed, 3 xfailed (the 3 are the known-bug tests in the Module 3 suite) |
-| Guardrail and reliability cases, simulated Gemini | `python evals/run_guardrails.py` | 43/43 passed; saved to `evals/results/guardrails.txt` and `.json` |
+| Full test suite (Gemini always mocked, network blocked) | `python3 -m pytest` | 493 passed, 3 xfailed (the 3 are the known-bug tests in the Module 3 suite) |
+| Comprehensive evaluation harness, scripted/mock Gemini | `python evals/run_eval.py` | 114/114 new scenarios and 647/647 checks passed (plus 1 documented finding, below); saved to `evals/results/eval_report.txt` and `.json`; identical on rerun |
+| Guardrail and reliability cases, simulated Gemini (reused by the harness) | `python evals/run_guardrails.py` | 43/43 passed; saved to `evals/results/guardrails.txt` and `.json` |
 | Streamlit UI | included in the suite (`tests/test_app_ui.py`, Streamlit `AppTest`) | passes with a mocked Gemini |
 | Real Gemini | `python3 -m src.moodmix_cli "I'm studying for finals"` | one successful live run captured (Example 1) |
+
+### Evaluation harness (Phase 6)
+
+`python evals/run_eval.py` runs predefined scenarios offline through the real code and checks behavior, not just that nothing
+crashes. Scenarios and checks are counted separately; the 43 guardrail cases are reused and reported separately, not added
+to the new totals.
+
+| Category | Scenarios passed | Checks passed |
+|---|---|---|
+| A. Recommendation correctness (scripted interpretations) | 6/6 | 58/58 |
+| B. Moods and activities (canned mock scenarios) | 6/6 | 53/53 |
+| C. Invalid input | 13/13 | 78/78 |
+| D. Prompt structure and injection resistance | 6/6 | 40/40 |
+| E. Missing or malformed Gemini responses | 20/20 | 172/172 |
+| F. API failures, retry policy, secret hygiene | 14/14 | 74/74 |
+| G. Manual fallback | 10/10 | 87/87 |
+| H. Feedback-driven ranking (+ 1 documented finding) | 10/10 | 33/33 |
+| I. Explanation grounding (+ 6 ungraded probes) | 28/28 | 51/51 |
+| K. Determinism | 1/1 | 1/1 |
+| **New total** | **114/114** | **647/647** |
+| Reused guardrail suite (`evals/run_guardrails.py`) | 43/43 | 136 expectation entries |
+
+Checks by basis: independent 219/219, specification 64/64, invariant 355/355, regression 9/9. "Independent" expectations were
+written from catalog attributes and the documented design before any output was inspected; "regression" checks compare the
+system with existing code and can only detect change.
+
+**Finding: feedback does not guarantee a top-k position.** The first version of scenario `H1-like-new-genre` expected that liking
+*Coffee Shop Stories* (jazz) would lift it into the top 3 (written before the first run). It did not: the song rose from #5
+(score 1.78) to #4 (score 3.85) and no further, because four catalog songs (Library Rain, Spacewalk Thoughts, Focus Flow,
+Midnight Coding) already matched the user's chosen genres and moods on every label and scored 3.84 to 3.94. The first harness
+run therefore reported 113/114 scenarios and exit code 1. After review, the scenario was changed to test the *intended* behavior
+(the liked song's score and rank improve, feedback notes explain the change, the result is deterministic, and the ranking equals
+the original engine run on the adjusted preferences) and the original top-3 expectation was kept as an ungraded, documented
+finding in the report (`H1-finding-top3-not-guaranteed`, status NOT MET). No rank was hard-coded as the new threshold, and the
+recommendation algorithm was not changed. Feedback influences rankings but cannot promise a position, since other songs may
+still be stronger matches. Any future failing scenario fails the harness and `tests/test_run_eval.py`.
+
+**Grounding of explanations.** On 25 independently labelled sentences within the checks' documented coverage (fabricated
+metadata such as other songs or artists, years, albums, false scores, wrong energy or tempo, plus links, markup and
+injection phrases, plus faithful sentences) the confusion table is TP 19, FN 0, TN 6, FP 0. On 6 probes outside that coverage
+(false but plausible wording like "a thrashing, aggressive anthem" for a calm song, vague claims, and metadata the checks do
+not list such as "the 90s" or "won several awards") all 6 were accepted. So the validator detects fabricated metadata; it does
+**not** judge whether an explanation is generally true, and passing does not mean every AI explanation is correct.
+
+**What is not reported, and why.** No precision/recall/NDCG, success rate, average score, diversity or latency numbers: with
+18 songs (13 of 15 genres have one song), scripted Gemini and hand labels they would be misleading. These results say
+nothing about how well real Gemini interprets text. Exact commands to reproduce everything:
+[docs/evidence/reproduce.md](docs/evidence/reproduce.md).
 
 Not yet demonstrated: a real-Gemini run through the Streamlit app, and screenshots (checklist in
 [docs/evidence/phase4_ui_walkthrough.md](docs/evidence/phase4_ui_walkthrough.md)). Rubric mapping:

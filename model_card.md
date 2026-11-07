@@ -289,10 +289,30 @@ explanations so are the facts of the recommended songs (title, artist, genre, mo
 
 | Evidence | Result |
 |---|---|
-| Automated tests (`python3 -m pytest`; Gemini always mocked, network blocked) | 474 passed, 3 xfailed (the 3 are known-bug tests from Module 3), run 2026-11-07 |
+| Automated tests (`python3 -m pytest`; Gemini always mocked, network blocked) | 493 passed, 3 xfailed (the 3 are known-bug tests from Module 3), run 2026-11-07 |
+| Comprehensive harness (`python evals/run_eval.py`, scripted or canned Gemini, no network) | 114/114 new scenarios and 647/647 checks passed across 9 categories (recommendation correctness, mock mood scenarios, invalid input, prompt structure, malformed responses, API failures, manual fallback, feedback, grounding); identical on rerun; saved in `evals/results/eval_report.txt` and `.json`. Plus one documented finding (below) |
 | Guardrail and reliability cases (`python evals/run_guardrails.py`, 43 fixed cases, simulated Gemini) | 43/43 passed; saved in `evals/results/guardrails.txt` and `.json`; identical across reruns |
 | One real Gemini run through the CLI (`gemini-3.5-flash-lite`) | succeeded; output in `docs/evidence/live_gemini_run_1.md` |
 | Errors observed with real Gemini before that run | HTTP 404 for `gemini-2.5-flash` (the API said it is no longer available to new users), then HTTP 504 and HTTP 503 for `gemini-3.8-flash`; causes of the 503/504 were not established |
+
+**A finding about feedback.** My first expectation for liking a jazz song (`H1-like-new-genre`) was that it would reach the top 3. It
+moved from #5 (score 1.78) to #4 (score 3.85): four songs already matched both of the user's chosen genres and moods and scored
+3.84 to 3.94, so one like could not overtake all of them. The first run reported this as a failure (113/114 scenarios). After review
+I replaced the scenario with checks of the intended behavior (the liked song's score and rank improve, the result is deterministic,
+and the ranking equals the original engine on the adjusted preferences) and kept the original top-3 expectation in the report as a
+documented finding with its observed numbers. I did not hard-code rank #4, and I did not change the recommendation algorithm. The
+lesson for users is that feedback influences rankings but does not guarantee a specific top-k position, because other songs may still
+be stronger matches. This is a property of the tiny catalog and the feedback rules, not something I tuned away.
+
+**Explanation grounding, honestly.** On 25 sentences labelled independently of the validator (within its documented coverage:
+fabricated metadata, unsafe text and faithful sentences), it rejected all 19 bad ones and accepted all 6 faithful ones. On 6
+probes outside that coverage (plausible false wording, vague claims, and metadata not in its list such as "the 90s" or "won
+awards") it accepted all 6. The checks catch fabricated metadata, not general untruth, and they do not guarantee that an
+explanation is correct. The labelled set is small and constructed, so these counts are a regression check, not an accuracy estimate.
+
+**Metrics I chose not to report.** Precision, recall or NDCG against human relevance, success rates, average scores, diversity
+percentages and latency would be misleading here: 18 songs (13 of 15 genres with one song), many score ties, scripted Gemini and
+hand-written labels. Reproduction commands: `docs/evidence/reproduce.md`.
 
 **What was not measured.** There is no measurement of how accurately Gemini interprets real inputs, no user study, and no
 baseline-versus-AI comparison. The guardrail cases use a simulated Gemini, so they test my code paths, not the real
