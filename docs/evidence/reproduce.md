@@ -1,7 +1,7 @@
 # Reproducing the evidence
 
 Everything below runs **offline**: Gemini is scripted, canned or absent, and no API key or `.env` is needed. The one real
-Gemini run (Example 1 in the README) cannot be reproduced offline; it needs your own key.
+Gemini run (Historical Example H1 in the README, 18-song catalog) cannot be reproduced offline; it needs your own key.
 Last run on 2026-11-07, Python 3.12, macOS.
 
 ```bash
@@ -63,9 +63,12 @@ python src/main.py --strategy all                                  # original Mo
 python3 -m src.moodmix_cli --mock "I need motivation to work out"  # offline mock, exit code 0
 python3 -m src.moodmix_cli --genre lofi --mood chill --energy 0.3  # manual only, exit code 0
 ```
-Captured outputs: `docs/evidence/examples/02_offline_mock_workout.txt` and `03_manual_only_lofi_chill.txt`.
+Captured outputs on the 68-song catalog: `docs/evidence/examples/04_68song_mock_workout.txt`, `05_68song_manual_lofi_chill.txt`,
+`06_68song_injection_rejected.txt` (a prompt injection is rejected, exit code 1) and `07_68song_missing_key_manual_fallback.txt` (no key, friendly error, exit
+code 1). Historical 18-song captures: `02_offline_mock_workout.txt` and `03_manual_only_lofi_chill.txt`. To run the last two without ever reading `.env`, prefix
+the command with `MOODMIX_DISABLE_DOTENV=1`.
 
 ## 5. Not reproducible offline
-- Example 1 in the README (real Gemini, `docs/evidence/live_gemini_run_1.md`): `python3 -m src.moodmix_cli "I'm studying for finals"`
+- Historical Example H1 in the README (real Gemini, 18-song catalog, `docs/evidence/live_gemini_run_1.md`): `python3 -m src.moodmix_cli "I'm studying for finals"`
   with your own `GEMINI_API_KEY`. Wording and scores can differ between runs and model versions.
-- A real-Gemini session through the Streamlit app, and the screenshots: not yet captured.
+- A real-Gemini session through the Streamlit app: four screenshots exist (`docs/evidence/screenshots/01` to `04`, taken when the catalog had 18 songs, Offline demo AI off). There is no transcript and no 68-song real-Gemini run; the five other planned screenshots (see the walkthrough) are not captured.

@@ -18,6 +18,9 @@ actually happened.
 | 4 | `11070a2` | `app.py`, `src/feedback.py`, `src/app_controller.py`, UI tests | Three plan changes I required (below) |
 | 5 | `5e7c74d` | `diagrams/architecture.mmd`, README restructure, model card extension, rubric map | Evidence labelled real, mock or manual; Mermaid source parse-checked |
 | 6 | `fe46099` | `evals/run_eval.py`, `evals/eval_cases.json`, saved reports, `tests/test_run_eval.py`, `docs/evidence/reproduce.md` | Expectations written before any output was inspected; one failed and was handled openly (below) |
+| UI | `29bc98b` | Dark-theme Streamlit redesign (`.streamlit/config.toml`, `src/ui_theme.py`), recommendation cards, screenshots | Presentation only; behavior, keys and tests unchanged; I took the screenshots and confirmed they were real Gemini |
+| 7 | `ea22dea` | Unified 68-song catalog: 12 test failures investigated, grounding fixes in `src/explain.py`, new evaluation `evals/run_unified_catalog.py`, data card | I chose one catalog over a selector; I approved each protected-file and expectation change; old evaluation results kept as history |
+| 8 | `69b3687` | "System Limitations and Future Improvements" section in the model card | I reviewed and approved the reflection text |
 
 ### Suggestions accepted
 

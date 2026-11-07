@@ -285,6 +285,15 @@ explanations so are the facts of the recommended songs (title, artist, genre, mo
   length and guardrail category. It never records user text, hashes of it, or keys.
 - **Transparency:** the interface labels AI-generated content and shows the engine's reasons.
 
+**What I learned from reliability testing.** Testing the failure paths taught me things that the happy path never showed. (1) A
+single opaque `llm_error` hid four different problems, so classifying HTTP 400, 401/403, 404, 429 and 5xx separately, with a sanitized
+status line, turned a vague failure into a diagnosis: the first real failure was a retired default model (404), not my key or my
+request. (2) Some failures I could not explain: I raised the timeout after a 504, but never confirmed that was the cause, and the
+following 503 was simply Gemini being overloaded, so the app has to treat the model as an unreliable dependency and keep the
+manual path working without it. (3) Checks need teeth: the Streamlit tests caught a rerun that lagged one step behind my edits, and a
+deliberate-breakage test showed my own evaluation harness crashing on an input I had not considered. (4) A clean pass is not proof:
+all of this ran against a scripted or simulated Gemini, so it shows that my code handles failures, not that the real model behaves.
+
 ## 12. Evaluation (what was actually run)
 
 Everything automated below runs offline against a **mocked, scripted or canned Gemini** (no network, no API key). It checks my
@@ -364,7 +373,7 @@ Section 18 summarizes these limitations and what I would improve next.
 - **Transparency and over-trust.** AI-written content is labelled, scoring reasons are always visible, and the interface says
   that feedback does not retrain the AI, so a user can see why a song was recommended.
 - **Misuse.** Injection attempts are rejected with a clear message rather than silently ignored.
-- **Fairness and scope.** This is not a music service. The tiny catalog cannot represent anyone's real taste, and a low score
+- **Fairness and scope.** This is not a music service. The small 68-song catalog cannot represent anyone's real taste, and a low score
   means only "does not match the labels".
 
 ## 15. AI collaboration reflection
@@ -393,7 +402,7 @@ rather than automatically correct. The full log is in `ai_interactions.md`. For 
 ## 16. Intended and non-intended use (MoodMix AI)
 
 - **Intended:** a classroom demonstration of combining an LLM interpretation step with a transparent rule-based
-  recommender, with guardrails, fallbacks and feedback, over a tiny catalog.
+  recommender, with guardrails, fallbacks and feedback, over a small 68-song catalog.
 - **Not intended for:** real music apps, any decision about people or artists, or handling sensitive text. Sections 7 and 13 apply.
 
 ## 17. The unified 68-song catalog
