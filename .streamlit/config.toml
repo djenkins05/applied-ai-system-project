@@ -1,0 +1,11 @@
+# MoodMix AI theme (native Streamlit theming; no external fonts).
+[theme]
+base = "dark"
+primaryColor = "#A78BFA"
+backgroundColor = "#0F1020"
+secondaryBackgroundColor = "#1A1B33"
+textColor = "#F3F1FF"
+linkColor = "#F9A8D4"
+borderColor = "#34365C"
+baseRadius = "large"
+font = "sans-serif"

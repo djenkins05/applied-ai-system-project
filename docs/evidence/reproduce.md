@@ -14,7 +14,7 @@ pip install -r requirements.txt
 ```bash
 python3 -m pytest
 ```
-Expected: `493 passed, 3 xfailed`. The 3 xfails are the known-bug tests in `tests/test_recommender.py` (Module 3).
+Expected: `501 passed, 3 xfailed`. The 3 xfails are the known-bug tests in `tests/test_recommender.py` (Module 3).
 
 ## 2. Comprehensive evaluation harness (new in Phase 6)
 ```bash

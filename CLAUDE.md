@@ -31,7 +31,8 @@ into an interactive AI music assistant using **Python, Streamlit, and the Gemini
 | `requirements.txt` | `pandas`, `pytest`, `streamlit`, `google-genai`, `python-dotenv`. |
 
 Implemented MoodMix AI files (all new; the protected files above are unchanged):
-- **UI / app logic:** `app.py` (Streamlit UI only), `src/app_controller.py` (UI-independent actions),
+- **UI / app logic:** `app.py` (Streamlit UI only), `.streamlit/config.toml` (dark theme), `src/ui_theme.py` (CSS and
+  escaped HTML helpers, no logic), `src/app_controller.py` (UI-independent actions),
   `src/feedback.py` (like/dislike rules).
 - **AI layer and safety:** `src/llm.py` (Gemini wrapper, injectable client), `src/preferences.py` (validation),
   `src/explain.py` (grounded explanations), `src/guardrails.py`, `src/fallback.py` (manual preferences),
@@ -101,7 +102,7 @@ retrieval (e.g., catalog + extra song metadata).
 ## 6. Testing Requirements and Commands
 ```bash
 pip install -r requirements.txt
-pytest                                # current baseline: 493 passed, 3 xfailed
+pytest                                # current baseline: 501 passed, 3 xfailed
 pytest -v tests/test_recommender.py   # original suite: 32 passed, 3 xfailed
 python src/main.py --strategy all     # original CLI smoke test (run from repo root)
 python -m src.moodmix_cli --mock "I need motivation to work out"   # offline mock CLI
@@ -152,7 +153,8 @@ Phases 1–6 below use the numbering of the development commits (see `ai_interac
 7. **Other stretch (optional)** — not demonstrated and not claimed: specialized prompting, bounded agentic workflow,
    multi-source retrieval.
 8. **Final polish** — in progress: fresh-clone verification, reflection review (drafts are marked DRAFT until I approve
-   them), screenshots and real-Gemini Streamlit evidence (pending my own captures), then an approved merge and push.
+   them), four real-Gemini Streamlit screenshots are saved; remaining screenshots (ranking modes, manual mode, guardrails,
+   failure fallback, limits) are pending my own captures; the rendered diagram is saved, then an approved merge and push.
 
 ## 9. Documentation and Grading Requirements
 - **README.md:** keep existing content; add MoodMix AI overview, setup (including API key), run

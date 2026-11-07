@@ -52,7 +52,8 @@ python evals/run_guardrails.py                                        # guardrai
 
 ## Architecture
 
-Source: [diagrams/architecture.mmd](diagrams/architecture.mmd) (the same text is embedded below).
+Source: [diagrams/architecture.mmd](diagrams/architecture.mmd) (the same text is embedded below). A rendered image of the
+diagram, captured by the author, is saved as [docs/evidence/screenshots/10_architecture_rendered.png](docs/evidence/screenshots/10_architecture_rendered.png).
 
 ```mermaid
 %% MoodMix AI architecture. Matches the implemented code (see README "Architecture").
@@ -328,7 +329,7 @@ more) is shown in `evals/results/guardrails.txt`; those cases use a simulated Ge
 
 | What | Command | Result when last run (2026-11-07) |
 |---|---|---|
-| Full test suite (Gemini always mocked, network blocked) | `python3 -m pytest` | 493 passed, 3 xfailed (the 3 are the known-bug tests in the Module 3 suite) |
+| Full test suite (Gemini always mocked, network blocked) | `python3 -m pytest` | 501 passed, 3 xfailed (the 3 are the known-bug tests in the Module 3 suite) |
 | Comprehensive evaluation harness, scripted/mock Gemini | `python evals/run_eval.py` | 114/114 new scenarios and 647/647 checks passed (plus 1 documented finding, below); saved to `evals/results/eval_report.txt` and `.json`; identical on rerun |
 | Guardrail and reliability cases, simulated Gemini (reused by the harness) | `python evals/run_guardrails.py` | 43/43 passed; saved to `evals/results/guardrails.txt` and `.json` |
 | Streamlit UI | included in the suite (`tests/test_app_ui.py`, Streamlit `AppTest`) | passes with a mocked Gemini |
@@ -382,8 +383,9 @@ not list such as "the 90s" or "won several awards") all 6 were accepted. So the 
 nothing about how well real Gemini interprets text. Exact commands to reproduce everything:
 [docs/evidence/reproduce.md](docs/evidence/reproduce.md).
 
-Not yet demonstrated: a real-Gemini run through the Streamlit app, and screenshots (checklist in
-[docs/evidence/phase4_ui_walkthrough.md](docs/evidence/phase4_ui_walkthrough.md)). Rubric mapping:
+Real-Gemini evidence through the Streamlit app: the four [Screenshots](#screenshots) below, captured with Offline demo AI off
+(author-confirmed). Remaining screenshots are listed in
+[docs/evidence/phase4_ui_walkthrough.md](docs/evidence/phase4_ui_walkthrough.md). Rubric mapping:
 [docs/rubric_coverage.md](docs/rubric_coverage.md).
 
 ## Features in detail
@@ -459,6 +461,27 @@ streamlit run app.py
 - **Failures:** errors show a friendly message with a sanitized technical detail; the manual fallback is a button you
   press, never automatic. A failed request keeps your text, edits, results and feedback. A new successful text request
   resets feedback. An "offline demo AI" checkbox uses canned answers (clearly labelled) when Gemini is unavailable.
+
+**Interface design (redesign after Phase 4, presentation only):** a dark navy theme with purple and pink accents
+(`.streamlit/config.toml`, plus a small amount of CSS in `src/ui_theme.py`). Each recommendation is a card with a decorative
+genre icon (illustrative, not album art), title, artist, genre and mood, a score bar with the number as text, and Like/Dislike
+buttons. The engine's reasons and Gemini's explanation appear in separate, labelled blocks. The interpretation shows as
+preference chips with an editable expander, and feedback has a summary panel. Launch with `streamlit run app.py` from the
+repository root; tick **Offline demo AI** in the sidebar to try it without a key. Recommendation logic, feedback rules and
+Gemini calls are unchanged. The redesign has automated tests and has been visually reviewed by the author; four screenshots of it are in the
+[Screenshots](#screenshots) section.
+
+### Screenshots
+
+Four unedited screenshots of the redesigned Streamlit app (`streamlit run app.py`, desktop width), taken by the author, who has visually reviewed the running app. **They are real Gemini session evidence: the author confirms Offline demo AI was off and the real Gemini integration was used** (the sidebar shows the model name `gemini-3.5-flash-lite`). They are separate from the offline mock runs and the scripted-Gemini evaluation harness, which never call real Gemini.
+Files are in [docs/evidence/screenshots/](docs/evidence/screenshots/).
+
+| Screenshot | Shows |
+|---|---|
+| ![Home page](docs/evidence/screenshots/01_homepage.png) | **Home page:** header and tagline, sidebar (mode, ranking mode, songs to show, settings), text input with three example requests, Find music, and the "How it works" card |
+| ![Editing preferences](docs/evidence/screenshots/02_edit_preferences.png) | **Interpretation and editing:** "How I read your request" with the AI-generated badge, preference chips, and the editable preference controls |
+| ![Recommendation cards](docs/evidence/screenshots/03_recommendation_cards.png) | **Recommendation cards:** title, artist, genre and mood, score bar with "x.xx / 4.00", Like/Dislike buttons, the rule-based engine reasons block and the separate AI explanation block |
+| ![Feedback notes](docs/evidence/screenshots/04_feedback_notes.png) | **Feedback:** the "Removed for you" list with Undo and "What your feedback changed" (Liked/Disliked/Excluded counts, adjustment notes, picks without feedback) |
 
 Tests: `tests/test_feedback.py`, `tests/test_app_controller.py` and `tests/test_app_ui.py` (Streamlit `AppTest`) use mocked
 Gemini only. The script for a short walkthrough is in [docs/evidence/phase4_ui_walkthrough.md](docs/evidence/phase4_ui_walkthrough.md).

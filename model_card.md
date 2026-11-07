@@ -318,8 +318,8 @@ hand-written labels. Reproduction commands: `docs/evidence/reproduce.md`.
 baseline-versus-AI comparison. The guardrail cases use a simulated Gemini, so they test my code paths, not the real
 model's behaviour on hostile input. The grounding checks are heuristics. The feedback constants (genre/mood weights, 0.30
 like step, 0.15 dislike step) were chosen by hand and not tuned with listeners. The Streamlit app has been tested with
-Streamlit's `AppTest` and a mocked Gemini, and a headless start-up check; I have not yet captured a real-Gemini session
-through the app.
+Streamlit's `AppTest` and a mocked Gemini, and a headless start-up check; I captured four screenshots of a real-Gemini session
+through the app (Offline demo AI off; `docs/evidence/screenshots/01` to `04`), but no recording or transcript.
 
 ## 13. Limitations and risks specific to the AI feature
 

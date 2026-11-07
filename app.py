@@ -25,6 +25,7 @@ from src.guardrails import friendly_warnings
 from src.llm import API_KEY_ENV, MAX_INPUT_CHARS, GeminiClient
 from src.mock_llm import MockGemini
 from src.recommender import MAX_SCORE, STRATEGIES, load_songs
+from src.ui_theme import CSS, chips_html, hero_html, score_bar_html, song_head_html
 
 SONGS_CSV = Path(__file__).resolve().parent / "data" / "songs.csv"
 EXAMPLES = ("I'm studying for finals", "I need motivation to work out", "Rainy night, feeling reflective")
@@ -141,8 +142,9 @@ def render_sidebar(ctl: AppController, state: AppState) -> None:
         st.caption(STRATEGY_BLURBS[ss["strategy_select"]] + " Points: " +
                    ", ".join(f"{name} {w:g}" for name, w in weights.items() if w))
         st.slider("Songs to show", MIN_K, ctl.max_k, key="k_slider")
-        st.checkbox("Include Gemini explanations with each new request", value=True, key="explain_toggle")
-        st.checkbox("Offline demo AI (canned answers, not real Gemini)", value=False, key="demo_mode")
+        with st.expander("AI and demo settings"):
+            st.checkbox("Include Gemini explanations with each new request", value=True, key="explain_toggle")
+            st.checkbox("Offline demo AI (canned answers, not real Gemini)", value=False, key="demo_mode")
         st.divider()
         st.button("Reset feedback", key="reset_feedback", on_click=ctl.reset_feedback, args=(state,),
                   disabled=len(state.feedback) == 0, help="Clears likes/dislikes and restores all songs.")
@@ -208,12 +210,10 @@ def render_interpretation(ctl: AppController, state: AppState) -> None:
 
     def value(number):
         return "not set" if number is None else f"{number:.2f}"
-    cols = st.columns(5)
-    cols[0].metric("Genres", ", ".join(prefs.genres) or "none")
-    cols[1].metric("Moods", ", ".join(prefs.moods) or "none")
-    cols[2].metric("Energy", value(prefs.target_energy))
-    cols[3].metric("Valence", value(prefs.target_valence))
-    cols[4].metric("Acousticness", value(prefs.target_acousticness))
+    st.markdown(chips_html([
+        ("Genres", ", ".join(prefs.genres) or "none"), ("Moods", ", ".join(prefs.moods) or "none"),
+        ("Energy", value(prefs.target_energy)), ("Valence", value(prefs.target_valence)),
+        ("Acousticness", value(prefs.target_acousticness))]), unsafe_allow_html=True)
     notes = friendly_warnings(prefs)
     if notes:
         st.info("\n".join(f"- {note}" for note in notes))
@@ -241,24 +241,27 @@ def render_results(ctl: AppController, state: AppState, client: Any) -> None:
     for rec in recs:
         song_id = rec.song["id"]
         vote = state.feedback.get(song_id)
-        with st.container(border=True):
-            left, right = st.columns([8, 2])
-            with left:
-                liked = "  :green-badge[you liked this]" if vote == LIKE else ""
-                st.markdown(f"**{rec.rank}. {rec.song['title']}**, {rec.song['artist']}")
-                st.markdown(f":gray-badge[{rec.song['genre']}] :gray-badge[{rec.song['mood']}]{liked}")
-                st.progress(min(1.0, rec.score / MAX_SCORE), text=f"{rec.score:.2f} / {MAX_SCORE:.2f}")
-            with right:
-                st.button("👍 Liked" if vote == LIKE else "👍 Like", key=f"like_{song_id}",
-                          on_click=ctl.vote, args=(state, song_id, LIKE),
-                          type="primary" if vote == LIKE else "secondary")
-                st.button("👎 Disliked" if vote == DISLIKE else "👎 Dislike", key=f"dislike_{song_id}",
-                          on_click=ctl.vote, args=(state, song_id, DISLIKE))
-            st.markdown("**Why it scored this (rule-based engine):**\n" +
-                        "\n".join(f"- {reason}" for reason in rec.reasons))
+        with st.container(border=True, key=f"card_{song_id}"):
+            st.markdown(song_head_html(rec.rank, rec.song["title"], rec.song["artist"], rec.song["genre"]),
+                        unsafe_allow_html=True)
+            liked = "  :green-badge[you liked this]" if vote == LIKE else ""
+            st.markdown(f":gray-badge[{rec.song['genre']}] :gray-badge[{rec.song['mood']}]{liked}")
+            st.markdown(score_bar_html(rec.score, MAX_SCORE), unsafe_allow_html=True)
+            like_col, dislike_col, _ = st.columns([2, 2, 5])
+            like_col.button("👍 Liked" if vote == LIKE else "👍 Like", key=f"like_{song_id}",
+                            on_click=ctl.vote, args=(state, song_id, LIKE),
+                            type="primary" if vote == LIKE else "secondary",
+                            help=f"Like {rec.song['title']}", use_container_width=True)
+            dislike_col.button("👎 Disliked" if vote == DISLIKE else "👎 Dislike", key=f"dislike_{song_id}",
+                               on_click=ctl.vote, args=(state, song_id, DISLIKE),
+                               help=f"Dislike {rec.song['title']}", use_container_width=True)
+            with st.container(key=f"engine_{song_id}"):
+                st.markdown("**Why it scored this (rule-based engine):**\n" +
+                            "\n".join(f"- {reason}" for reason in rec.reasons))
             why = state.ai_why.get(song_id)
             if why:
-                st.markdown(f"🤖 *AI explanation (written by Gemini, checked against the data):* {why}")
+                with st.container(key=f"aiwhy_{song_id}"):
+                    st.markdown(f"🤖 *AI explanation (written by Gemini, checked against the data):* {why}")
 
     if state.mode == MODE_AI and state.request_text:
         if st.button("Ask Gemini to explain these picks", key="explain_now"):
@@ -278,6 +281,10 @@ def render_results(ctl: AppController, state: AppState, client: Any) -> None:
         if len(state.feedback) == 0:
             st.write("No feedback yet. Like or dislike a song to see how the preferences shift.")
         else:
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Liked", len(state.feedback.liked_ids))
+            m2.metric("Disliked", len(state.feedback.disliked_ids))
+            m3.metric("Excluded now", len(outcome.excluded))
             for note in outcome.adjusted.notes:
                 st.write(f"- {note}")
             if outcome.excluded:
@@ -285,6 +292,16 @@ def render_results(ctl: AppController, state: AppState, client: Any) -> None:
             if not outcome.adjusted.notes and not outcome.excluded:
                 st.write("Your votes did not change any preference yet.")
             st.write("Without your feedback the top picks would be: " + ", ".join(outcome.baseline_titles))
+
+
+def render_empty_state() -> None:
+    with st.container(border=True, key="hero_empty"):
+        st.markdown("**How it works**")
+        st.markdown("1. Describe your mood, or pick manual preferences in the sidebar.\n"
+                    "2. Check how the request was read, and edit it if needed.\n"
+                    "3. Like or dislike songs and watch the picks adapt.")
+        st.caption("On a phone, open the sidebar (top left) for ranking mode and settings. "
+                   "Nothing is recommended until you ask.")
 
 
 def render_about() -> None:
@@ -321,7 +338,8 @@ def main() -> None:
     ctl.set_k(state, ss["k_slider"])
     client = get_client()
 
-    st.title("MoodMix AI")
+    st.markdown(CSS, unsafe_allow_html=True)
+    st.markdown(hero_html(), unsafe_allow_html=True)
     st.caption("A rule-based engine picks the songs. Gemini (AI) only reads your text and writes "
                "optional explanations. Everything AI-written is labelled.")
 
@@ -350,6 +368,8 @@ def main() -> None:
         else:
             render_interpretation(ctl, state)
 
+    if state.outcome is None and state.base_prefs is None and state.error is None:
+        render_empty_state()
     render_results(ctl, state, client)
     render_about()
 

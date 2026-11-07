@@ -52,7 +52,7 @@
   input never produces; I corrected it before the first run because the expectation itself was wrong, not to make a result pass. A
   deliberate-breakage test then showed the harness crashing when a liked song fell outside the top 10 with a broken engine, so the finding
   code was made robust, and a vacuous always-pass check was removed.
-- Before submission, no screenshots have been captured and no real-Gemini session through the Streamlit app has been recorded.
+- Four app screenshots from a real Gemini session (Offline demo AI off, confirmed by me) are saved in `docs/evidence/screenshots/`. Other planned screenshots (ranking modes, manual mode, guardrail rejection, failure fallback, limits) are not captured yet. The rendered architecture diagram is saved as `10_architecture_rendered.png`.
 
 ---
 
