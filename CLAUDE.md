@@ -156,9 +156,10 @@ Phases 1–6 below use the numbering of the development commits (see `ai_interac
    scripted or canned) plus saved reports; one expectation (H1 top 3) is kept as a documented finding.
 7. **Other stretch (optional)** — not demonstrated and not claimed: specialized prompting, bounded agentic workflow,
    multi-source retrieval.
-8. **Final polish** — in progress: fresh-clone verification, reflection reviewed and approved by me (no DRAFT labels remain),
-   four real-Gemini Streamlit screenshots are saved; remaining screenshots (ranking modes, manual mode, guardrails,
-   failure fallback, limits) are pending my own captures; the rendered diagram is saved, then an approved merge and push.
+8. **Final polish** — essentially done: Phases 1-6 and the unified 68-song catalog (Phase 7 in `ai_interactions.md`) are merged to
+   `main` by pull request (#1, #2); reflections approved by me; four real-Gemini Streamlit screenshots (18-song era) and a
+   68-song architecture render are saved. Remaining optional items: five more app screenshots (ranking modes, manual mode,
+   guardrail rejection, failure fallback, limits), pinning dependency versions, and the final submission itself.
 
 ## 9. Documentation and Grading Requirements
 - **README.md:** keep existing content; add MoodMix AI overview, setup (including API key), run

@@ -1,0 +1,69 @@
+Label:    OFFLINE MOCK RUN (canned stand-in for Gemini, NOT real Gemini)
+Command:  python3 -m src.moodmix_cli --mock "I need motivation to work out"
+Catalog:  data/songs.csv (68 songs: 18 original + 50 real)
+Captured: 2026-11-07
+Exit code: 0
+----------------------------------------------------------------
+[MOCK Gemini: canned answers, no API call]
+
+AI-generated interpretation of your request (please check it):
+  Your request:  I need motivation to work out
+  Genres:        EDM, pop, metal
+  Moods:         uplifting, intense
+  Energy:        0.95
+  Valence:       0.80
+  Acousticness:  0.05
+  Ranking mode:  balanced   (model: mock)
+
+================================================================
+ Top 5 recommendations
+================================================================
+
+1. Gym Hero  by Max Pulse
+   Score: 3.96 / 4.00
+   AI says: This intense pop pick suits what you described.
+   Engine reasons:
+     - genre match: pop (+1.0)
+     - mood match: intense (+1.0)
+     - energy 0.93 vs target 0.95 (+0.98)
+     - valence 0.77 vs target 0.80 (+0.48)
+     - acousticness 0.05 vs target 0.05 (+0.50)
+
+2. Levels  by Avicii
+   Score: 3.92 / 4.00
+   AI says: This uplifting EDM pick suits what you described.
+   Engine reasons:
+     - genre match: EDM (+1.0)
+     - mood match: uplifting (+1.0)
+     - energy 0.95 vs target 0.95 (+1.00)
+     - valence 0.94 vs target 0.80 (+0.43)
+     - acousticness 0.02 vs target 0.05 (+0.48)
+
+3. Ace of Spades  by Motörhead
+   Score: 3.85 / 4.00
+   AI says: This intense metal pick suits what you described.
+   Engine reasons:
+     - genre match: metal (+1.0)
+     - mood match: intense (+1.0)
+     - energy 0.95 vs target 0.95 (+1.00)
+     - valence 0.55 vs target 0.80 (+0.38)
+     - acousticness 0.00 vs target 0.05 (+0.47)
+
+4. Wake Me Up  by Avicii
+   Score: 3.68 / 4.00
+   AI says: This uplifting EDM pick suits what you described.
+   Engine reasons:
+     - genre match: EDM (+1.0)
+     - mood match: uplifting (+1.0)
+     - energy 0.78 vs target 0.95 (+0.83)
+     - valence 0.65 vs target 0.80 (+0.42)
+     - acousticness 0.20 vs target 0.05 (+0.42)
+
+5. Back in Black  by AC/DC
+   Score: 2.85 / 4.00
+   AI says: This intense rock pick suits what you described.
+   Engine reasons:
+     - mood match: intense (+1.0)
+     - energy 0.87 vs target 0.95 (+0.92)
+     - valence 0.70 vs target 0.80 (+0.45)
+     - acousticness 0.02 vs target 0.05 (+0.48)

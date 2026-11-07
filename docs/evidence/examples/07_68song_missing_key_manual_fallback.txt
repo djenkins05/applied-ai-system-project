@@ -1,0 +1,9 @@
+Label:    RELIABILITY: no API key, so Gemini is never called; friendly error points to manual preferences
+Command:  GEMINI_API_KEY= python3 -m src.moodmix_cli "I'm studying for finals"
+Catalog:  data/songs.csv (68 songs: 18 original + 50 real)
+Captured: 2026-11-07
+Exit code: 1
+----------------------------------------------------------------
+MoodMix request failed: no_api_key (MissingAPIKeyError)
+Could not make recommendations (no_api_key): No Gemini API key is set. Set GEMINI_API_KEY (see .env.example), or use manual preferences.
+  You can still get recommendations by entering your preferences manually.

@@ -61,7 +61,8 @@ the real Gemini integration was used. These are not offline-mock or evaluation-h
 ![Edit preferences](screenshots/02_edit_preferences.png)
 ![Recommendation cards](screenshots/03_recommendation_cards.png)
 ![Feedback notes](screenshots/04_feedback_notes.png)
-![Rendered architecture diagram](screenshots/10_architecture_rendered.png)
+![Rendered architecture diagram (68-song source)](screenshots/10_architecture_rendered.png)
+![Earlier render, historical (data node said 18 songs)](screenshots/10_architecture_rendered_18_song_label.png)
 
 ## Still to capture (not done)
 
