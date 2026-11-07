@@ -19,6 +19,7 @@ import re
 import time
 from typing import Any, Callable, Dict, List, Optional
 
+from src.env import load_env
 from src.preferences import (
     PREFERENCE_JSON_SCHEMA,
     MoodPreferences,
@@ -31,8 +32,10 @@ logger = logging.getLogger(__name__)
 API_KEY_ENV = "GEMINI_API_KEY"
 MODEL_ENV = "GEMINI_MODEL"
 # Default model ID: confirm against the live model list at the first real smoke test.
-DEFAULT_MODEL = "gemini-2.5-flash"
-DEFAULT_TIMEOUT_S = 15.0
+DEFAULT_MODEL = "gemini-3.5-flash-lite"  # verified in a live run; override with GEMINI_MODEL
+TIMEOUT_ENV = "GEMINI_TIMEOUT_S"
+# 504 DEADLINE_EXCEEDED at 15s with gemini-3.8-flash: newer models can take longer to respond.
+DEFAULT_TIMEOUT_S = 45.0
 DEFAULT_MAX_RETRIES = 1
 MAX_INPUT_CHARS = 500
 
@@ -44,7 +47,30 @@ class InputError(ValueError):
 
 
 class LLMError(Exception):
-    """Base class for Gemini failures. Messages never contain the API key."""
+    """
+    Base class for Gemini failures. Messages never contain the API key.
+
+    Optional diagnostics (all sanitized): `status_code` (HTTP), `api_status` (e.g.
+    "NOT_FOUND") and `detail` (the API's explanation, redacted and truncated).
+    """
+
+    def __init__(self, message: str = "", status_code: Optional[int] = None,
+                 api_status: Optional[str] = None, detail: Optional[str] = None):
+        super().__init__(message)
+        self.status_code = status_code
+        self.api_status = api_status
+        self.detail = detail
+
+    @property
+    def diagnostic(self) -> str:
+        """One safe line, e.g. 'HTTP 404 NOT_FOUND: models/x is not found'. '' if no HTTP info."""
+        if self.status_code is None:
+            return ""
+        parts = [f"HTTP {self.status_code}"]
+        if self.api_status:
+            parts.append(self.api_status)
+        text = " ".join(parts)
+        return f"{text}: {self.detail}" if self.detail else text
 
 
 class MissingAPIKeyError(LLMError):
@@ -61,6 +87,18 @@ class LLMTimeoutError(LLMError):
 
 class LLMUnavailableError(LLMError):
     """Server error, quota/rate limit (429), or connection failure."""
+
+
+class LLMRateLimitError(LLMUnavailableError):
+    """HTTP 429: rate limit or quota reached (retried like other unavailable errors)."""
+
+
+class LLMBadRequestError(LLMError):
+    """HTTP 400: the request was malformed (bad schema/config, unsupported option, bad key format)."""
+
+
+class LLMModelNotFoundError(LLMError):
+    """HTTP 404: the configured model (GEMINI_MODEL) does not exist or is not available."""
 
 
 class LLMResponseError(LLMError):
@@ -175,22 +213,59 @@ def _is_timeout(error: Exception) -> bool:
     return isinstance(error, TimeoutError) or "timeout" in type(error).__name__.lower()
 
 
+_REDACTIONS = (
+    (re.compile(r"AIza[0-9A-Za-z_\-]{20,}"), "[REDACTED]"),
+    (re.compile(r"(?i)\b(bearer|basic)\s+[A-Za-z0-9._~+/=\-]+"), r"\1 [REDACTED]"),
+    (re.compile(r"(?i)\b(api[_-]?key|x-goog-api-key|authorization|token|secret)\b\s*[:=]\s*\S+"),
+     r"\1=[REDACTED]"),
+    (re.compile(r"(?i)([?&](?:key|api_key|access_token)=)[^&\s]+"), r"\1[REDACTED]"),
+    (re.compile(r"\bhttps?://\S+"), "[url]"),
+)
+MAX_DETAIL_CHARS = 200
+
+
+def sanitize_detail(text: Any) -> Optional[str]:
+    """Redact keys/tokens/URLs from an API error message, collapse whitespace, truncate."""
+    if not isinstance(text, str) or not text.strip():
+        return None
+    out = " ".join(text.split())
+    for pattern, repl in _REDACTIONS:
+        out = pattern.sub(repl, out)
+    key = os.environ.get(API_KEY_ENV)
+    if key and len(key) >= 8:
+        out = out.replace(key, "[REDACTED]")
+    return out[:MAX_DETAIL_CHARS]
+
+
 def classify_error(error: Exception) -> LLMError:
-    """Map any SDK/network exception to one of our errors. Never includes str(error)."""
+    """
+    Map any SDK/network exception to one of our errors.
+
+    Never includes str(error) or request data: only the HTTP code, the API's status word and a
+    sanitized, truncated explanation.
+    """
     if isinstance(error, LLMError):
         return error
     if _is_timeout(error):
         return LLMTimeoutError("the request to Gemini timed out")
     code = _status_code(error)
+    if code is None:
+        return LLMUnavailableError(f"could not reach Gemini ({type(error).__name__})")
+    status = getattr(error, "status", None)
+    api_status = status if isinstance(status, str) and re.fullmatch(r"[A-Z_]{3,40}", status) else None
+    info = {"status_code": code, "api_status": api_status,
+            "detail": sanitize_detail(getattr(error, "message", None))}
     if code in (401, 403):
-        return LLMAuthError("the Gemini API rejected the API key")
+        return LLMAuthError(f"the Gemini API rejected the API key (HTTP {code})", **info)
+    if code == 400:
+        return LLMBadRequestError("Gemini rejected the request as invalid (HTTP 400)", **info)
+    if code == 404:
+        return LLMModelNotFoundError("the Gemini model or endpoint was not found (HTTP 404)", **info)
     if code == 429:
-        return LLMUnavailableError("Gemini rate limit or quota reached")
-    if code is not None and code >= 500:
-        return LLMUnavailableError(f"Gemini service error (HTTP {code})")
-    if code is not None:
-        return LLMError(f"Gemini rejected the request (HTTP {code})")
-    return LLMUnavailableError(f"could not reach Gemini ({type(error).__name__})")
+        return LLMRateLimitError("Gemini rate limit or quota reached (HTTP 429)", **info)
+    if code >= 500:
+        return LLMUnavailableError(f"Gemini service error (HTTP {code})", **info)
+    return LLMError(f"Gemini rejected the request (HTTP {code})", **info)
 
 
 class GeminiClient:
@@ -205,12 +280,21 @@ class GeminiClient:
         self,
         client: Any = None,
         model: Optional[str] = None,
-        timeout_s: float = DEFAULT_TIMEOUT_S,
+        timeout_s: Optional[float] = None,
         max_retries: int = DEFAULT_MAX_RETRIES,
         sleep: Callable[[float], None] = time.sleep,
     ):
+        if client is None:
+            load_env()   # local .env; existing environment variables take priority
         self._client = client
         self.model = model or os.environ.get(MODEL_ENV) or DEFAULT_MODEL
+        if timeout_s is None:
+            try:
+                timeout_s = float(os.environ.get(TIMEOUT_ENV, ""))
+            except ValueError:
+                timeout_s = DEFAULT_TIMEOUT_S
+            if not 1.0 <= timeout_s <= 300.0:
+                timeout_s = DEFAULT_TIMEOUT_S
         self.timeout_s = timeout_s
         self.max_retries = max_retries
         self._sleep = sleep
@@ -251,7 +335,10 @@ class GeminiClient:
                 text = getattr(response, "text", None)
             except Exception as error:  # noqa: BLE001 - classified and re-raised below
                 last_error = classify_error(error)
-                logger.warning("Gemini call failed: %s", type(error).__name__)
+                logger.warning(
+                    "Gemini call failed: %s%s (model=%s)", type(error).__name__,
+                    f" [{last_error.diagnostic}]" if last_error.diagnostic else "", self.model,
+                )
                 retryable = isinstance(last_error, (LLMTimeoutError, LLMUnavailableError))
                 if retryable and attempt < self.max_retries:
                     self._sleep(1.0 * (attempt + 1))

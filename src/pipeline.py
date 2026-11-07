@@ -18,7 +18,9 @@ from src.explain import build_facts, format_interpretation, validate_explanation
 from src.llm import (
     InputError,
     LLMAuthError,
+    LLMBadRequestError,
     LLMError,
+    LLMModelNotFoundError,
     LLMResponseError,
     LLMTimeoutError,
     LLMUnavailableError,
@@ -39,6 +41,10 @@ _FAILURES = (
     (MissingAPIKeyError, "no_api_key",
      "No Gemini API key is set. Set GEMINI_API_KEY (see .env.example), or use manual preferences."),
     (LLMAuthError, "auth", "Gemini rejected the API key. Check GEMINI_API_KEY."),
+    (LLMBadRequestError, "bad_request",
+     "Gemini rejected the request as invalid (HTTP 400). See the diagnostic line below."),
+    (LLMModelNotFoundError, "model_not_found",
+     "The Gemini model was not found (HTTP 404). Check GEMINI_MODEL."),
     (LLMTimeoutError, "timeout", "Gemini took too long to respond. Please try again."),
     (LLMUnavailableError, "unavailable",
      "Gemini is unavailable or the quota was reached. Please try again later."),
@@ -105,7 +111,11 @@ def recommend_from_text(
         prefs = interpret_preferences(request, catalog_vocabulary(songs), gemini)
     except (InputError, LLMError, PreferenceError) as error:
         kind, message = _failure(error)
-        logger.warning("MoodMix request failed: %s (%s)", kind, type(error).__name__)
+        diagnostic = getattr(error, "diagnostic", "")
+        logger.warning("MoodMix request failed: %s (%s)%s", kind, type(error).__name__,
+                       f" [{diagnostic}]" if diagnostic else "")
+        if diagnostic:
+            message = f"{message}\n  Diagnostic: {diagnostic}"
         return RecommendationResult(
             ok=False, request=request, strategy=strategy, error_kind=kind, error=message
         )

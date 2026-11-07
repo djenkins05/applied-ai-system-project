@@ -120,6 +120,28 @@ pytest
 
 You can add more tests in `tests/test_recommender.py`.
 
+### Live Gemini test (verified)
+
+MoodMix AI sends free-text input to Gemini, which returns structured preferences that the existing
+recommender scores. Setup: copy `.env.example` to `.env` and set `GEMINI_API_KEY` (never commit `.env`).
+The default model is `gemini-3.5-flash-lite`; set `GEMINI_MODEL` to override it.
+
+```bash
+python3 -m src.moodmix_cli "I'm studying for finals"
+```
+
+One real run with this command (model `gemini-3.5-flash-lite`, `balanced` mode) interpreted the request as
+moods focused and chill with energy 0.25, then ranked Spacewalk Thoughts (2.63 / 4.00), Library Rain (2.53),
+Focus Flow (2.47), Midnight Coding (2.44) and Clair de Lune (1.19). The full captured output, including the
+engine's scoring reasons and Gemini's one-line explanations, is in
+[docs/evidence/live_gemini_run_1.md](docs/evidence/live_gemini_run_1.md). Gemini's wording and scores can
+differ between runs; this documents a single run.
+
+Before this run, earlier attempts with other model IDs returned errors, observed and not further investigated:
+HTTP 404 for `gemini-2.5-flash` (the API said the model is no longer available to new users), then HTTP 504
+(deadline expired) and HTTP 503 (high demand) for `gemini-3.8-flash`. The CLI prints the HTTP status and a
+sanitized message for such failures. Offline demo without an API key: `python3 -m src.moodmix_cli --mock "I need motivation to work out"`.
+
 ---
 
 ## Sample Recommendation Output

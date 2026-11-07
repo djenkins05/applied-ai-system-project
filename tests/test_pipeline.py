@@ -89,7 +89,7 @@ def test_every_strategy_works_through_the_pipeline(songs, strategy):
     (FakeAPIError(503), "unavailable"),
     (FakeAPIError(429), "unavailable"),
     (FakeAPIError(403), "auth"),
-    (FakeAPIError(400), "llm_error"),
+    (FakeAPIError(400), "bad_request"),   # was "llm_error" before HTTP 400 got its own class
     (None, "bad_response"),
     ("not json", "invalid_preferences"),
     ("{}", "invalid_preferences"),
