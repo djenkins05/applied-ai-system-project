@@ -643,15 +643,26 @@ def scenarios_h(spec, songs) -> List[Dict[str, Any]]:
     def score_of(state, song_id):
         return next((r.score for r in state.outcome.result.recommendations if r.song["id"] == song_id), None)
 
+    def full_position(prefs_obj, strategy, song_id):
+        """Rank and score of one song among ALL catalog songs (the UI only shows the top 10, which was too narrow
+        a window once the catalog grew from 18 to 68 songs)."""
+        ranked = recommend_songs(to_user_prefs(prefs_obj), songs, len(songs), strategy)
+        for position, (song, score, _) in enumerate(ranked, start=1):
+            if song["id"] == song_id:
+                return position, score
+        return None, None
+
     def like_run():
         ctl, state, rec, gem = new_controller(songs, spec)
         ctl.set_k(state, 10)
-        before = {"rank": rank(state, COFFEE), "score": score_of(state, COFFEE), "genres": list(state.base_prefs.genres),
+        rank_b, score_b = full_position(state.base_prefs, state.strategy, COFFEE)
+        before = {"rank": rank_b, "score": score_b, "genres": list(state.base_prefs.genres),
                   "moods": list(state.base_prefs.moods), "top": ids_scores(state)}
         both_labels = [r.song["title"] for r in state.outcome.result.recommendations
                        if r.song["genre"] in before["genres"] and r.song["mood"] in before["moods"]]
         ctl.like(state, COFFEE)
-        after = {"rank": rank(state, COFFEE), "score": score_of(state, COFFEE), "top": ids_scores(state)}
+        rank_a, score_a = full_position(state.outcome.adjusted.prefs, state.strategy, COFFEE)
+        after = {"rank": rank_a, "score": score_a, "top": ids_scores(state)}
         return state, before, after, both_labels
 
     state, before, after, both_labels = like_run()
@@ -679,7 +690,7 @@ def scenarios_h(spec, songs) -> List[Dict[str, Any]]:
         return None if value is None else round(value, 2)
 
     def show(value):
-        return "not in the top 10" if value is None else (f"{value:.2f}" if isinstance(value, float) else str(value))
+        return "not ranked" if value is None else (f"{value:.2f}" if isinstance(value, float) else str(value))
 
     met = after["rank"] is not None and after["rank"] <= 3
     finding = {
@@ -688,6 +699,10 @@ def scenarios_h(spec, songs) -> List[Dict[str, Any]]:
         "observed": {"rank_before": before["rank"], "rank_after": after["rank"],
                      "score_before": num(before["score"]), "score_after": num(after["score"])},
         "status": "MET" if met else "NOT MET",
+        "history_18_song_catalog": {
+            "note": "Historical result with the original 18-song catalog (kept in evals/results/history/18_song_baseline/); "
+                    "the rank there was measured among the returned top 10.",
+            "rank_before": 5, "rank_after": 4, "score_before": 1.78, "score_after": 3.85, "status": "NOT MET"},
         "songs_already_matching_both_chosen_genre_and_mood": both_labels,
         "explanation": ("Feedback influences the ranking but does not guarantee a particular top-k position: other songs can "
                         "still be stronger matches. Here the songs listed already matched the user's chosen genres and moods "
@@ -771,8 +786,10 @@ def scenarios_h(spec, songs) -> List[Dict[str, Any]]:
     out.append(scenario_record("H6-all-strategies", "H", "Dislikes work under all five ranking strategies.", checks))
 
     # H8: shortfall and reset
-    ctl, state, rec, gem = new_controller(songs, spec)
-    for song in songs[:16]:
+    small = songs[:18]            # the 18 original rows: a small isolated catalog, so the shortfall is genuine
+    assert [s["id"] for s in small] == list(range(1, 19))
+    ctl, state, rec, gem = new_controller(small, spec)
+    for song in small[:16]:
         ctl.dislike(state, song["id"])
     short_n, message = len(state.outcome.result.recommendations), state.outcome.message
     ctl.reset_feedback(state)
@@ -938,10 +955,38 @@ def guardrail_subsuite() -> Dict[str, Any]:
             "failed_ids": [c["id"] for c in report["cases"] if not c["passed"]]}
 
 
+def scenario_a1_finding(spec, songs) -> Dict[str, Any]:
+    """The original A1 expectation (written for the 18-song catalog) kept as an ungraded finding."""
+    sc = next(x for x in spec["scenarios"] if x["id"] == "A1-jazz-coffee-shop")
+    prefs = parse_preferences(sc["gemini"]["interpret"]["json"], catalog_vocabulary(songs))
+    ranked = recommend_songs(to_user_prefs(prefs), songs, 5)
+    first = ranked[0][0]["title"]
+    met = first == "Coffee Shop Stories"
+    finding = {
+        "id": "A1-finding-original-top-pick",
+        "original_expectation": "Top pick is 'Coffee Shop Stories' (written for the 18-song catalog, where it was the only "
+                                "song that was both jazz and relaxed).",
+        "observed": {"top_pick": first, "top_5": [song["title"] for song, _, _ in ranked],
+                     "score_of_top_pick": round(ranked[0][1], 2)},
+        "status": "MET" if met else "NOT MET",
+        "history_18_song_catalog": "MET (see evals/results/history/18_song_baseline/)",
+        "explanation": ("The unified catalog also contains real jazz songs that are jazz and relaxed, so a different, equally "
+                        "valid jazz song can lead. The graded A1 scenario now checks the intended behavior (a jazz top pick; "
+                        "top 3 all jazz and near the energy target), written before the harness was re-run."),
+    }
+    record = scenario_record(
+        "A1-finding-original-top-pick", "A",
+        f"FINDING (documented, not graded): the original expectation was top pick 'Coffee Shop Stories'; observed '{first}'. "
+        "The catalog grew from 18 to 68 songs.", [C("finding_recorded", "independent", True, "")], informational=True)
+    record["finding"] = finding
+    return record
+
+
 def collect() -> Tuple[List[Dict[str, Any]], Dict[str, Any], Dict[str, Any]]:
     spec = json.loads(CASES_PATH.read_text(encoding="utf-8"))
     songs = load_songs(str(ROOT / "data" / "songs.csv"))
     scenarios = [execute(sc, spec, songs) for sc in spec["scenarios"]]
+    scenarios.append(scenario_a1_finding(spec, songs))
     scenarios.append(scenario_b_sensitivity(spec, songs))
     scenarios += scenario_d(spec, songs)
     scenarios += scenarios_h(spec, songs)
@@ -1016,10 +1061,22 @@ def format_report(report: Dict[str, Any]) -> str:
     lines += ["== Evaluation findings (documented, not graded) =="]
     for f in report["findings"]:
         o = f["observed"]
-        lines += [f"{f['id']}: original expectation: {f['original_expectation']}",
-                  f"  observed: rank {o['rank_before']} -> {o['rank_after']}, score {o['score_before']} -> {o['score_after']}; expectation {f['status']}",
-                  f"  songs that already matched the user's chosen genre and mood: {', '.join(f['songs_already_matching_both_chosen_genre_and_mood'])}",
-                  f"  {f['explanation']}"]
+        lines.append(f"{f['id']}: original expectation: {f['original_expectation']}")
+        if "rank_before" in o:
+            lines += [f"  observed: rank {o['rank_before']} -> {o['rank_after']} among all catalog songs, "
+                      f"score {o['score_before']} -> {o['score_after']}; expectation {f['status']}",
+                      f"  songs that already matched the user's chosen genre and mood: "
+                      f"{', '.join(f['songs_already_matching_both_chosen_genre_and_mood'])}"]
+        else:
+            lines.append(f"  observed: top pick {o['top_pick']} (score {o['score_of_top_pick']}); top 5: "
+                         f"{', '.join(o['top_5'])}; expectation {f['status']}")
+        history = f.get("history_18_song_catalog")
+        if isinstance(history, dict):
+            lines.append(f"  history (18-song catalog): rank {history['rank_before']} -> {history['rank_after']}, "
+                         f"score {history['score_before']} -> {history['score_after']}; {history['status']}")
+        elif history:
+            lines.append(f"  history (18-song catalog): {history}")
+        lines.append(f"  {f['explanation']}")
     lines.append("")
     d, o = report["grounding"]["documented_coverage"], report["grounding"]["outside_documented_coverage"]
     lines += ["== Explanation-grounding confusion table ==",
@@ -1042,7 +1099,7 @@ def format_report(report: Dict[str, Any]) -> str:
               f"Reused guardrail scenarios: {g['passed']}/{g['scenarios']} passed",
               f"Reproducible on rerun: {report['deterministic_on_rerun']}",
               "Metrics deliberately not reported: precision/recall/NDCG against human relevance, success rates, average score,",
-              "diversity percentages, latency. With 18 songs, scripted Gemini and hand labels they would be misleading.",
+              "diversity percentages, latency. With a 68-song catalog (50 songs with estimated ratings), scripted Gemini and hand labels they would be misleading.",
               f"Overall: {'PASS' if report['overall_pass'] else 'FAIL'}"]
     if report["failed_scenarios"]:
         lines.append("Failed scenarios: " + ", ".join(report["failed_scenarios"]))

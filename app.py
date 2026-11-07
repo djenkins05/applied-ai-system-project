@@ -232,7 +232,8 @@ def render_results(ctl: AppController, state: AppState, client: Any) -> None:
     recs = outcome.result.recommendations
     st.subheader(f"Top {len(recs)} picks")
     st.caption(f"Ranking mode: {state.strategy.replace('_', ' ')}. "
-               "Scores come from the rule-based engine, out of 4.00.")
+               "Scores come from the rule-based engine, out of 4.00. Most songs in the catalog are real; "
+               "their energy, valence and acousticness values are approximate estimates, not Spotify data.")
     if outcome.message:
         st.warning(outcome.message)
     if state.notice:
@@ -313,8 +314,9 @@ def render_about() -> None:
             "scores every song; its reasons are always shown.\n"
             "- **Checks:** your text is screened before it is sent; Gemini's answer is validated "
             "against the catalog; AI explanations that mention anything not in the data are dropped.\n"
-            "- **Limits:** the catalog has only 18 songs and 15 genres, matching is label-based, there "
-            "is no listening history, and the AI can misread a mood. This is a class project, not a "
+            "- **Limits:** the catalog has 68 songs and 15 genres (18 from my Module 3 project plus 50 real "
+            "songs whose ratings are approximate estimates, not Spotify data), matching is label-based, "
+            "there is no listening history, and the AI can misread a mood. This is a class project, not a "
             "music service.")
 
 
@@ -322,7 +324,7 @@ def render_about() -> None:
 
 def main() -> None:
     state = get_state()
-    ctl = AppController(load_catalog())
+    ctl = AppController(st.session_state.get("_test_songs") or load_catalog())
     sync_widget_keys(state)
     # Widget values are already in session_state when the script starts, so apply live edits first:
     # the summary, the badge and the results below then all reflect the same preferences.

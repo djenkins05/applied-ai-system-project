@@ -14,7 +14,7 @@ pip install -r requirements.txt
 ```bash
 python3 -m pytest
 ```
-Expected: `501 passed, 3 xfailed`. The 3 xfails are the known-bug tests in `tests/test_recommender.py` (Module 3).
+Expected: `549 passed, 3 xfailed`. The 3 xfails are the known-bug tests in `tests/test_recommender.py` (Module 3).
 
 ## 2. Comprehensive evaluation harness (new in Phase 6)
 ```bash
@@ -22,14 +22,15 @@ python evals/run_eval.py
 ```
 Writes `evals/results/eval_report.txt` and `evals/results/eval_report.json`. Expected last lines (exit code 0):
 ```
-New scenarios: 114/114 passed (7 informational items not graded: grounding probes and findings)
-New checks: 647/647 passed. By basis: independent 219/219, specification 64/64, invariant 355/355, regression 9/9
+New scenarios: 114/114 passed (8 informational items not graded: grounding probes and findings)
+New checks: 649/649 passed. By basis: independent 221/221, specification 64/64, invariant 355/355, regression 9/9
 Reused guardrail scenarios: 43/43 passed
 Reproducible on rerun: True
 Overall: PASS
 ```
-The report also contains a documented, ungraded finding (`H1-finding-top3-not-guaranteed`): the original expectation that a liked
-jazz song would reach the top 3 was not met (rank 5 -> 4, score 1.78 -> 3.85). Any failing graded scenario makes the exit code 1.
+The report also contains two documented, ungraded findings: `H1-finding-top3-not-guaranteed` (a liked jazz song did not reach the top 3:
+rank 19 -> 7 among all 68 songs, score 1.78 -> 3.85; with the old 18-song catalog it was 5 -> 4) and `A1-finding-original-top-pick`
+(the old expectation "Coffee Shop Stories" is no longer the top pick; *Take Five* is). Any failing graded scenario makes the exit code 1.
 
 Check that two runs write identical reports:
 ```bash
@@ -37,13 +38,24 @@ python evals/run_eval.py > /dev/null; md5 -q evals/results/eval_report.json eval
 python evals/run_eval.py > /dev/null; md5 -q evals/results/eval_report.json evals/results/eval_report.txt
 ```
 (`md5sum` on Linux.) The two pairs of hashes must match. On 2026-11-07 both runs gave
-`0d8ff9e8375fc6c3cac23c19cf73c406` (json) and `1cc6865611a507c2a353190ecf674981` (txt).
+`5c25ff7943eafc42e5e3c17782e8f4b9` (json) and `2bb99fb7614660b75e12f3e2481d86c5` (txt) on the corrected 68-song catalog
+(the results before the nine data corrections, md5 `113961b9...` json and `230e0cba...` txt, are frozen in
+`evals/results/history/68_song_before_data_corrections/`). The earlier 18-song results (md5 `0d8ff9e8...` json,
+`1cc68656...` txt) are frozen in `evals/results/history/18_song_baseline/`.
 
 ## 3. Guardrail demonstration (original, reused by the harness)
 ```bash
 python evals/run_guardrails.py
 ```
 Expected: `Summary: 43/43 passed, 0 failed`; writes `evals/results/guardrails.txt` and `.json`.
+
+## 3b. Unified 68-song catalog evaluation (separate from section 2)
+```bash
+python evals/run_unified_catalog.py
+```
+Expected: `Scenarios: 15/15 passed`, `Checks: 79/79 passed`, `Overall: PASS`, exit code 0; also prints two ungraded diagnostics. Writes
+`evals/results/unified_catalog.txt` and `.json` (identical on rerun; md5 `68ec8c497e0e6f0e6dcd7b308400431f` json, `bce04bcff7656da5fa19e887c37732c5` txt; the pre-correction results are in `evals/results/history/68_song_before_data_corrections/`). Scripted Gemini only; the 50 real
+songs' ratings are approximate estimates.
 
 ## 4. CLI smoke tests
 ```bash

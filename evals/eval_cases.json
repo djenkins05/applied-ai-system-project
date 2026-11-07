@@ -8,10 +8,10 @@
   "user_text_marker": "zebra-marker-4471",
   "scenarios": [
 
-    {"category": "A", "id": "A1-jazz-coffee-shop", "description": "Scripted interpretation: jazz + relaxed + low energy. Only one catalog song is both jazz and relaxed.",
+    {"category": "A", "id": "A1-jazz-coffee-shop", "description": "Scripted interpretation: jazz + relaxed + low energy. Replacement expectations for the 68-song catalog (the original 18-song expectation, top pick Coffee Shop Stories, is kept as an ungraded finding): the top pick is a jazz song, and the top 3 are all jazz with energy within 0.15 of the 0.35 target.",
      "text": "a quiet corner of a coffee shop",
      "gemini": {"interpret": {"json": {"genres": ["jazz"], "moods": ["relaxed"], "target_energy": 0.35, "target_valence": 0.7, "target_acousticness": 0.9}}},
-     "checks": [{"check": "ok", "value": true}, {"check": "top1_title", "value": "Coffee Shop Stories"}, {"check": "oracle_equals_engine"}]},
+     "checks": [{"check": "ok", "value": true}, {"check": "top_any_in", "attr": "genre", "values": ["jazz"], "k": 1}, {"check": "top_none_in", "attr": "genre", "values": ["EDM", "R&B", "ambient", "classical", "disco", "hip-hop", "indie pop", "lofi", "metal", "pop", "rap", "rock", "synthwave", "trap"], "k": 3}, {"check": "top_all_near", "attr": "energy", "target": 0.35, "tolerance": 0.15, "k": 3}, {"check": "oracle_equals_engine"}]},
     {"category": "A", "id": "A2-club-edm", "description": "Scripted interpretation: EDM/pop, uplifting, very high energy. The only EDM + uplifting song should lead.",
      "text": "a big night out at the club",
      "gemini": {"interpret": {"json": {"genres": ["EDM", "pop"], "moods": ["uplifting"], "target_energy": 0.95, "target_valence": 0.9, "target_acousticness": 0.05}}},

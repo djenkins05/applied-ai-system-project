@@ -160,12 +160,13 @@ def test_dislike_excludes_undo_and_reset_restore(ctl):
     assert ids(state) == before and state.outcome.excluded == []
 
 
-def test_shortfall_message_and_immediate_reset(ctl, songs):
-    state, _, _ = started(ctl)
+def test_shortfall_message_and_immediate_reset(songs):
+    small = AppController(songs[:18])      # small isolated catalog: the shortfall must be genuine
+    state, _, _ = started(small)
     for song in songs[:16]:
-        ctl.dislike(state, song["id"])
+        small.dislike(state, song["id"])
     assert len(ids(state)) == 2 and "Only 2 of the 5" in state.outcome.message
-    ctl.reset_feedback(state)
+    small.reset_feedback(state)
     assert len(ids(state)) == 5 and state.outcome.message is None
 
 

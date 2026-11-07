@@ -1,0 +1,512 @@
+{
+  "checks_passed": 79,
+  "checks_total": 79,
+  "command": "python evals/run_unified_catalog.py",
+  "diagnostics_not_graded": [
+    {
+      "diagnostic": "original songs outside the top 3 for a query built from their own labels and values",
+      "note": "ties with other songs are legitimate; rank is not graded",
+      "value": "none"
+    },
+    {
+      "diagnostic": "how many of the top 10 are original (ids 1-18) songs, per request",
+      "note": "real songs outnumber the originals about 3 to 1",
+      "value": {
+        "party": 4,
+        "sleep": 2,
+        "study": 5,
+        "workout": 4
+      }
+    }
+  ],
+  "failed": 0,
+  "scenarios": [
+    {
+      "checks": [
+        {
+          "check": "68 songs, ids 1 to 68",
+          "detail": "68",
+          "passed": true
+        },
+        {
+          "check": "first 18 rows byte-identical to the Module 3 file",
+          "detail": "sha256 matches the original file",
+          "passed": true
+        },
+        {
+          "check": "15 genres and 14 moods",
+          "detail": "15 genres, 14 moods",
+          "passed": true
+        },
+        {
+          "check": "unique titles",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "check": "0-1 ranges and tempo 40-220",
+          "detail": "",
+          "passed": true
+        }
+      ],
+      "name": "RC1 data quality and schema",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "top 3 are all high energy (>= 0.75)",
+          "detail": "Gym Hero, Levels, Ace of Spades",
+          "passed": true
+        },
+        {
+          "check": "top 1 genre is one of the requested",
+          "detail": "pop",
+          "passed": true
+        }
+      ],
+      "name": "RC2 workout request",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "top 3 are low energy (<= 0.45)",
+          "detail": "Monday Loop, Music for Airports 1/1, Aruarian Dance",
+          "passed": true
+        },
+        {
+          "check": "top 1 genre is one of the requested",
+          "detail": "lofi",
+          "passed": true
+        }
+      ],
+      "name": "RC3 study request",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "top 1 is calm and acoustic",
+          "detail": "Clair de Lune",
+          "passed": true
+        }
+      ],
+      "name": "RC4 sleep request",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "top 3 are positive (valence >= 0.6)",
+          "detail": "Uptown Funk, Levitating, Shake It Off",
+          "passed": true
+        }
+      ],
+      "name": "RC5 party request",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "a melancholic or reflective song is in the top 5",
+          "detail": "chill, melancholic, reflective",
+          "passed": true
+        }
+      ],
+      "name": "RC6 sad request",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "genre EDM: a EDM song ranks first",
+          "detail": "Strobe",
+          "passed": true
+        },
+        {
+          "check": "genre R&B: a R&B song ranks first",
+          "detail": "Let Me Love You",
+          "passed": true
+        },
+        {
+          "check": "genre ambient: a ambient song ranks first",
+          "detail": "Spacewalk Thoughts",
+          "passed": true
+        },
+        {
+          "check": "genre classical: a classical song ranks first",
+          "detail": "The Four Seasons: Spring",
+          "passed": true
+        },
+        {
+          "check": "genre disco: a disco song ranks first",
+          "detail": "Stayin' Alive",
+          "passed": true
+        },
+        {
+          "check": "genre hip-hop: a hip-hop song ranks first",
+          "detail": "Feather",
+          "passed": true
+        },
+        {
+          "check": "genre indie pop: a indie pop song ranks first",
+          "detail": "Electric Feel",
+          "passed": true
+        },
+        {
+          "check": "genre jazz: a jazz song ranks first",
+          "detail": "Coffee Shop Stories",
+          "passed": true
+        },
+        {
+          "check": "genre lofi: a lofi song ranks first",
+          "detail": "Midnight Coding",
+          "passed": true
+        },
+        {
+          "check": "genre metal: a metal song ranks first",
+          "detail": "Iron Man",
+          "passed": true
+        },
+        {
+          "check": "genre pop: a pop song ranks first",
+          "detail": "Someone Like You",
+          "passed": true
+        },
+        {
+          "check": "genre rap: a rap song ranks first",
+          "detail": "Love Yourz",
+          "passed": true
+        },
+        {
+          "check": "genre rock: a rock song ranks first",
+          "detail": "Stairway to Heaven",
+          "passed": true
+        },
+        {
+          "check": "genre synthwave: a synthwave song ranks first",
+          "detail": "A Real Hero",
+          "passed": true
+        },
+        {
+          "check": "genre trap: a trap song ranks first",
+          "detail": "XO Tour Llif3",
+          "passed": true
+        }
+      ],
+      "name": "RC7 every genre is reachable",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "mood aggressive: a aggressive song is in the top 3",
+          "detail": "HUMBLE., Smells Like Teen Spirit, Master of Puppets",
+          "passed": true
+        },
+        {
+          "check": "mood chill: a chill song is in the top 3",
+          "detail": "Feather, Midnight Coding, Aruarian Dance",
+          "passed": true
+        },
+        {
+          "check": "mood dreamy: a dreamy song is in the top 3",
+          "detail": "Strobe, Redbone, Clair de Lune",
+          "passed": true
+        },
+        {
+          "check": "mood focused: a focused song is in the top 3",
+          "detail": "Focus Flow, Monday Loop, Music for Airports 1/1",
+          "passed": true
+        },
+        {
+          "check": "mood happy: a happy song is in the top 3",
+          "detail": "Rooftop Lights, Dancing Queen, Dog Days Are Over",
+          "passed": true
+        },
+        {
+          "check": "mood intense: a intense song is in the top 3",
+          "detail": "In Da Club, Stayin' Alive, Lose Yourself",
+          "passed": true
+        },
+        {
+          "check": "mood melancholic: a melancholic song is in the top 3",
+          "detail": "XO Tour Llif3, Heart on Ice, Skinny Love",
+          "passed": true
+        },
+        {
+          "check": "mood moody: a moody song is in the top 3",
+          "detail": "Stairway to Heaven, Nightcall, As It Was",
+          "passed": true
+        },
+        {
+          "check": "mood ominous: a ominous song is in the top 3",
+          "detail": "Iron Man, Enter Sandman",
+          "passed": true
+        },
+        {
+          "check": "mood playful: a playful song is in the top 3",
+          "detail": "No Scrubs, Bad and Boujee, Electric Feel",
+          "passed": true
+        },
+        {
+          "check": "mood reflective: a reflective song is in the top 3",
+          "detail": "Love Yourz, What a Wonderful World, Moonlight Sonata (1st Movement)",
+          "passed": true
+        },
+        {
+          "check": "mood relaxed: a relaxed song is in the top 3",
+          "detail": "Coffee Shop Stories, Take Five, Canon in D",
+          "passed": true
+        },
+        {
+          "check": "mood romantic: a romantic song is in the top 3",
+          "detail": "Let Me Love You, A Real Hero, Best Part",
+          "passed": true
+        },
+        {
+          "check": "mood uplifting: a uplifting song is in the top 3",
+          "detail": "The Four Seasons: Spring, Empire State of Mind, Wake Me Up",
+          "passed": true
+        }
+      ],
+      "name": "RC8 every mood is reachable",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "identical on repeat",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "check": "equals the original engine run directly",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "check": "all five strategies rank all 50 songs",
+          "detail": "",
+          "passed": true
+        }
+      ],
+      "name": "RC9 engine equality, determinism, all strategies",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "liked song's score increases",
+          "detail": "1.03 -> 3.79",
+          "passed": true
+        },
+        {
+          "check": "liked song's rank improves",
+          "detail": "#40 -> #1",
+          "passed": true
+        },
+        {
+          "check": "deterministic",
+          "detail": "",
+          "passed": true
+        }
+      ],
+      "name": "RC10 like a new-genre song",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "disliked song is excluded",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "check": "exclusion listed",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "check": "reset restores the baseline exactly",
+          "detail": "",
+          "passed": true
+        }
+      ],
+      "name": "RC11 dislike excludes and reset restores",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "interpretation is exactly one Gemini call",
+          "detail": "1",
+          "passed": true
+        },
+        {
+          "check": "voting and re-ranking make no Gemini call",
+          "detail": "0 calls",
+          "passed": true
+        }
+      ],
+      "name": "RC12 no extra Gemini calls",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "injection rejected",
+          "detail": "input",
+          "passed": true
+        },
+        {
+          "check": "no Gemini call was made",
+          "detail": "0 calls",
+          "passed": true
+        }
+      ],
+      "name": "RC13 injection rejected before any API call",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "accepts a true sentence naming Ace of Spades",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "check": "accepts a true sentence naming Don't Stop 'Til You Get Enough",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "check": "accepts a true sentence naming HUMBLE.",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "check": "accepts a true sentence naming Gymnopédie No. 1",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "check": "rejects a mention of another real song",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "check": "rejects a mention of another real artist",
+          "detail": "",
+          "passed": true
+        },
+        {
+          "check": "rejects an invented year",
+          "detail": "",
+          "passed": true
+        }
+      ],
+      "name": "RC14 grounding with real, punctuated names",
+      "passed": true
+    },
+    {
+      "checks": [
+        {
+          "check": "Sunrise City: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Midnight Coding: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Storm Runner: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Library Rain: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Gym Hero: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Spacewalk Thoughts: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Coffee Shop Stories: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Night Drive Loop: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Focus Flow: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Rooftop Lights: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Heart on Ice: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Love Yourz: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "First Day Out: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Let Me Love You: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Rock with You: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Levels: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Clair de Lune: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        },
+        {
+          "check": "Enter Sandman: scores the maximum for its own description",
+          "detail": "4.00",
+          "passed": true
+        }
+      ],
+      "name": "RC15 original songs stay reachable",
+      "passed": true
+    }
+  ],
+  "scenarios_passed": 15,
+  "scenarios_total": 15
+}

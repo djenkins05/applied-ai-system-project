@@ -74,9 +74,29 @@ def build_facts(recommendations: Sequence[Tuple[Dict, float, str]]) -> Dict[str,
     return {"songs": songs}
 
 
-def _word_in(needle: str, haystack: str, ignore_case: bool) -> bool:
+def _word_in(needle: str, haystack: str, ignore_case: bool, join_hyphen: bool = False) -> bool:
+    """Whole-word search. With join_hyphen, a hyphen continues the word ("Feather-light" is not "Feather")."""
     flags = re.IGNORECASE if ignore_case else 0
-    return re.search(r"(?<!\w)" + re.escape(needle) + r"(?!\w)", haystack, flags) is not None
+    before, after = (r"(?<![\w-])", r"(?![\w-])") if join_hyphen else (r"(?<!\w)", r"(?!\w)")
+    return re.search(before + re.escape(needle) + after, haystack, flags) is not None
+
+
+def _normalize(text: str) -> str:
+    """Straight apostrophes, so "Don’t Stop ’Til…" (curly) cannot hide a mention of "Don't Stop 'Til…"."""
+    return text.replace("\u2019", "'").replace("\u2018", "'")
+
+
+_FEATURED = re.compile(r"\s+ft\.?\s+", re.IGNORECASE)
+_FEATURED_SPLIT = re.compile(r"\s*(?:,|&|\band\b)\s*", re.IGNORECASE)
+
+
+def _credits(artist: str) -> List[str]:
+    """Credited names of an artist field: "Nujabes ft. Cise Starr & Akin" -> Nujabes, Cise Starr, Akin."""
+    parts = _FEATURED.split(artist, maxsplit=1)
+    names = [parts[0].strip()]
+    if len(parts) == 2:
+        names += [name.strip() for name in _FEATURED_SPLIT.split(parts[1]) if name.strip()]
+    return names
 
 
 def _reason_points(fact: Dict[str, Any]) -> List[float]:
@@ -95,27 +115,35 @@ def check_explanation(
     if len(why) > MAX_WHY_CHARS:
         return "explanation too long"
 
+    why = _normalize(why)
     own_title, own_artist = fact["title"], fact["artist"]
+    own_credits = {name.lower() for name in _credits(own_artist)} | {own_artist.lower()}
     vocab = catalog_vocabulary(list(catalog))
 
-    # Other songs or artists from the catalog.
+    # Other songs or artists from the catalog. A credited name that is also credited on THIS song (the
+    # primary artist or a featured artist) is not "another artist"; a featured artist on the wrong song is.
     for other in catalog:
         if other["id"] == fact["song_id"]:
             continue
-        if other["title"] != own_title and _word_in(other["title"], why, ignore_case=False):
+        if other["title"] != own_title and _word_in(_normalize(other["title"]), why, ignore_case=False,
+                                                    join_hyphen=True):
             return f"mentions another song: {other['title']!r}"
-        if other["artist"] != own_artist and _word_in(other["artist"], why, ignore_case=True):
-            return f"mentions another artist: {other['artist']!r}"
+        for name in {other["artist"], *_credits(other["artist"])}:
+            if name.lower() in own_credits:
+                continue
+            if _word_in(name, why, ignore_case=True):
+                return f"mentions another artist: {name!r}"
 
     # Quoted titles/names and "by <Name>" credits must be this song's own.
-    allowed_names = {own_title.lower(), own_artist.lower(), *(g.lower() for g in vocab.genres),
-                     *(m.lower() for m in vocab.moods)}
+    short_title = re.sub(r"\s*\([^)]*\)\s*$", "", own_title).lower()      # "Moonlight Sonata (1st Movement)"
+    allowed_names = {own_title.lower(), short_title, own_artist.lower(), *own_credits,
+                     *(g.lower() for g in vocab.genres), *(m.lower() for m in vocab.moods)}
     for match in _QUOTED.finditer(why):
         quoted = (match.group(1) or match.group(2)).strip().lower()
         if quoted not in allowed_names:
             return f"quotes an unknown title or name: {quoted!r}"
     for match in _BY_NAME.finditer(why):
-        credited = match.group(1).strip().lower()
+        credited = match.group(1).strip().rstrip(".,;:!?").lower()       # "by Paper Lanterns." ends a sentence
         if credited not in own_artist.lower():
             return f"credits an unknown artist: {match.group(1)!r}"
 
