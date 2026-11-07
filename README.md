@@ -524,6 +524,7 @@ Gemini only. The script for a short walkthrough is in [docs/evidence/phase4_ui_w
 
 ## Limitations and responsible use
 
+- For my fuller reflection on limitations and what I would improve next, see [model_card.md](model_card.md), section 18.
 - Small catalog (68 songs, 15 genres; 50 of them real songs with approximate estimated ratings, not Spotify data), label-based matching, no listening history. This is a class project, not a music service.
 - Gemini can misread a mood or reflect bias in how it interprets language. Its output is validated, but a plausible
   misreading is not detectable. The interpretation panel exists so you can check and edit it.

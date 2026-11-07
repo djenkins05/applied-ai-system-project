@@ -1,6 +1,6 @@
 # 🎧 Model Card: MoodMix AI
 
-> **MoodMix AI extends my Module 3 recommender.** Sections 1 to 9 describe the original Module 3 recommender (named MatchVibe 1.0 at the time) and are kept as written. Sections 10 to 17 add the Gemini-powered MoodMix AI features, their evaluation, risks, my AI collaboration reflection and the larger 68-song catalog. Sections 1 to 9 describe the 18-song catalog; `data/songs.csv` now has 68 songs (see section 17).
+> **MoodMix AI extends my Module 3 recommender.** Sections 1 to 9 describe the original Module 3 recommender (named MatchVibe 1.0 at the time) and are kept as written. Sections 10 to 18 add the Gemini-powered MoodMix AI features, their evaluation, risks, my AI collaboration reflection, the larger 68-song catalog and my reflection on its limitations and future improvements. Sections 1 to 9 describe the 18-song catalog; `data/songs.csv` now has 68 songs (see section 17).
 
 ## 1. Model Name
 
@@ -355,6 +355,8 @@ recording or transcript.
   intermittently overloaded. The app depends on model availability, and model names change.
 - **Session-only feedback.** Feedback is not saved and is not learned from across sessions.
 
+Section 18 summarizes these limitations and what I would improve next.
+
 ## 14. Ethical considerations
 
 - **Privacy.** Text typed into the app is sent to Google's Gemini API. Do not enter sensitive personal information.
@@ -425,3 +427,20 @@ grounding problems that I fixed with regression tests (a sentence-final "by Arti
 abbreviated quoted title was rejected). One limitation remains by design: an ambiguous single-word title or artist (for example
 "Levels" or "Mario") can make a harmless explanation be rejected, which is the safe direction because the engine's reasons are shown
 instead. The recommendation algorithm was not changed.
+
+## 18. System Limitations and Future Improvements
+
+MoodMix AI currently recommends songs from a limited catalog of 68 tracks, which restricts the variety of recommendations users can receive. The 50 added real songs also use manually estimated music characteristics rather than officially measured audio features. In addition, Gemini can sometimes misinterpret a user's request, and the explanation validation system cannot verify every factual claim.
+
+In the future, I would like to expand the music catalog, incorporate more reliable music metadata, and improve how the application understands different genres and moods. I would also like to test MoodMix AI with real users to evaluate whether its recommendations match their actual listening preferences.
+
+These improvements would help make MoodMix AI more accurate, personalized, and useful beyond the classroom.
+
+**Where the details are, and what I learned building the 68-song version.** I did not repeat the full lists here: the limits of the
+AI feature (misreading, prompt injection, bias, unverifiable explanations, dependence on a third-party model, session-only feedback)
+are in section 13, the data limits (estimated numbers, the arbitrary rap and hip-hop labels, tempo ambiguity, how the original 18 rows
+were produced) are in section 17 and `data/README.md`, and what my tests and evaluations do not show is in section 12. Two
+things shaped my future plans. First, adding 50 songs changed rankings I had treated as settled (for example a quiet jazz request now
+returns a different top song), which showed me how much my results depend on the catalog and its labels. Second, my evaluations all use a
+scripted Gemini and my own hand labels, so I cannot yet say whether real recommendations are good; only real listeners can tell me that.
+
