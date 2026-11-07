@@ -142,6 +142,35 @@ HTTP 404 for `gemini-2.5-flash` (the API said the model is no longer available t
 (deadline expired) and HTTP 503 (high demand) for `gemini-3.8-flash`. The CLI prints the HTTP status and a
 sanitized message for such failures. Offline demo without an API key: `python3 -m src.moodmix_cli --mock "I need motivation to work out"`.
 
+### Reliability, guardrails and manual fallback (Phase 3)
+
+- **Input guardrails** (`src/guardrails.py`): empty, oversized (over 500 characters), symbols-only and
+  repeated-character input, and clear prompt-injection attempts (override instructions, reveal hidden
+  prompts, impersonate system/developer roles, bypass safeguards) are rejected before any Gemini call.
+  The injection check is deliberately narrow: requests such as "I need music to ignore distractions" or
+  "Forget my previous music preferences" are accepted (covered by tests).
+- **Output validation:** Gemini's preferences are validated against the catalog (unknown genres/moods
+  dropped, numbers clamped) and shown as plain-language notes; AI explanations containing links, markup,
+  instructions or invented details are dropped and the engine's scoring reasons are shown instead.
+- **Manual fallback** (`src/fallback.py`): if Gemini fails, the request can still be answered from
+  preferences you enter yourself. It is explicit: with no usable manual preferences, you get a friendly
+  error (`fallback_available=True`) and no recommendations built from defaults.
+- **Reliability log** (`src/reliability_log.py`): off by default. `--log-file logs/reliability.jsonl`
+  (or `MOODMIX_LOG_FILE`) records event type, error category, HTTP status, latency, input length,
+  guardrail category and whether the fallback was used. It never records user text, hashes of it, or keys.
+
+```bash
+python3 -m src.moodmix_cli --genre lofi --mood chill --energy 0.3        # manual only: no API call, no key
+python3 -m src.moodmix_cli "studying" --genre lofi --energy 0.3          # Gemini, manual fallback if it fails
+python3 -m src.moodmix_cli "studying" --log-file logs/reliability.jsonl  # opt-in reliability log
+python evals/run_guardrails.py                                           # guardrail demonstration
+```
+
+`evals/run_guardrails.py` runs 43 fixed cases with a simulated Gemini (no network, key or `.env`) and writes
+`evals/results/guardrails.txt` and `.json` (no timestamps; two consecutive runs produced identical files).
+Last run: 43/43 passed. These cases test the code paths with scripted responses; they say nothing about how
+the real model behaves on the same inputs.
+
 ---
 
 ## Sample Recommendation Output

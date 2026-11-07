@@ -21,3 +21,6 @@ venv/
 *.key
 *.pem
 secrets.*
+
+# Reliability logs (opt-in via --log-file / MOODMIX_LOG_FILE)
+logs/
